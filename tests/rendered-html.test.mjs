@@ -54,6 +54,7 @@ test("restores hidden maps and supports focused marker zoom", async () => {
   assert.match(source, /clientWidth > 1 && container\.clientHeight > 1/);
   assert.match(source, /mapRef\.current\.on\("complete"/);
   assert.match(source, /requestAnimationFrame/);
+  assert.match(source, /setBounds\(bounds, immediately/);
   assert.doesNotMatch(source, /map\.resize\(\)|mapRef\.current\.resize\(\)/);
 });
 

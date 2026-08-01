@@ -83,19 +83,19 @@ function containerIsVisible(container: HTMLDivElement | null) {
   return Boolean(container && container.clientWidth > 1 && container.clientHeight > 1);
 }
 
-function applyResearchViewport(AMap: any, map: any, container: HTMLDivElement | null, researchArea?: MapView) {
+function applyResearchViewport(AMap: any, map: any, container: HTMLDivElement | null, researchArea?: MapView, immediately = true) {
   if (!researchArea || !containerIsVisible(container)) return false;
   if (researchArea.bounds) {
     const bounds = new AMap.Bounds(
       [researchArea.bounds.southwest.lng, researchArea.bounds.southwest.lat],
       [researchArea.bounds.northeast.lng, researchArea.bounds.northeast.lat],
     );
-    map.setBounds(bounds, false, [56, 56, 56, 56]);
+    map.setBounds(bounds, immediately, [56, 56, 56, 56]);
   } else {
     map.setZoomAndCenter(
       researchArea.zoom,
       [researchArea.center.lng, researchArea.center.lat],
-      false,
+      immediately,
       320,
     );
   }
@@ -307,7 +307,7 @@ export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiI
 
   function focusResearchArea() {
     if (!mapRef.current || !window.AMap || !containerRef.current) return;
-    if (applyResearchViewport(window.AMap, mapRef.current, containerRef.current, researchArea)) {
+    if (applyResearchViewport(window.AMap, mapRef.current, containerRef.current, researchArea, false)) {
       initialViewportAppliedRef.current = true;
       setMessage(`已返回${researchAreaName}研究区`);
     }
