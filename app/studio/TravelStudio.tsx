@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { MAX_SELECTED_TRAVEL_TOPICS, TRAVEL_TOPICS } from "../../platform/runtime/travel-topics.mjs";
 import styles from "./studio.module.css";
 
 const stages = [
@@ -15,7 +16,9 @@ const stages = [
 ] as const;
 
 const stageIndex = new Map(stages.map((stage, index) => [stage[0], index]));
-const laneLabels: Record<string, string> = { history: "历史", culture: "文化", scenery: "风景", food: "美食" };
+const themeCatalog = TRAVEL_TOPICS as ReadonlyArray<{ id: string; label: string; scope: string }>;
+const laneLabels: Record<string, string> = Object.fromEntries(themeCatalog.map((theme) => [theme.id, theme.label]));
+const laneStatusLabels: Record<string, string> = { queued: "等待", running: "检索中", succeeded: "完成", failed: "待重试" };
 
 type BriefDraft = { destination: string; days: number; interests: string[]; mustEat: string[]; mustVisit: string[] };
 type RunSummary = {
@@ -28,7 +31,9 @@ type Snapshot = {
   progress: {
     evidence_total: number; evidence_by_lane: Record<string, number>; shortlisted: number; verified: number;
     needs_confirmation: number; scheduled_days: number; scheduled_places: number; route_segments: number; verified_routes: number;
+    research_lanes: Array<{ lane: string; topic_label: string; status: string; attempt_count: number; evidence_count: number; last_error: string | null }>;
   };
+  worker: { attempt: number; active: boolean; version: string | null; lease_expires_at: string | null };
   events: Array<{ id: string; to_stage: string; status: string; message: string; poi_calls: number; route_calls: number; created_at: string }>;
   policy: { research_provider_calls: number; shortlist_range: number[]; daily_stops_range: number[]; route_rule: string };
 };
@@ -141,7 +146,12 @@ export default function TravelStudio({ user, initialBrief, initialRunId }: {
   }
 
   function toggleTheme(theme: string) {
-    setDraft((current) => ({ ...current, interests: current.interests.includes(theme) ? current.interests.filter((item) => item !== theme) : [...current.interests, theme] }));
+    setDraft((current) => ({
+      ...current,
+      interests: current.interests.includes(theme)
+        ? current.interests.filter((item) => item !== theme)
+        : current.interests.length < MAX_SELECTED_TRAVEL_TOPICS ? [...current.interests, theme] : current.interests,
+    }));
   }
 
   return (
@@ -166,7 +176,7 @@ export default function TravelStudio({ user, initialBrief, initialRunId }: {
             <header><p>NEW PLANNING RUN</p><h2>新建旅行研究</h2><span>提交后先建立任务记录，不会立刻用高德全城搜索。</span></header>
             <form onSubmit={createRun}>
               <div className={styles.formGrid}><label>目的地<input required value={draft.destination} onChange={(event) => setDraft({ ...draft, destination: event.target.value })} /></label><label>旅行天数<select value={draft.days} onChange={(event) => setDraft({ ...draft, days: Number(event.target.value) })}>{[1,2,3,4,5,6,7].map((day) => <option key={day} value={day}>{day} 天</option>)}</select></label></div>
-              <fieldset><legend>研究主题</legend><div className={styles.themeGrid}>{["历史","文化","风景","美食"].map((theme) => <button type="button" key={theme} className={draft.interests.includes(theme) ? styles.selectedTheme : ""} onClick={() => toggleTheme(theme)}>{theme}</button>)}</div></fieldset>
+              <fieldset><legend>研究主题 · 已选 {draft.interests.length}/{MAX_SELECTED_TRAVEL_TOPICS}</legend><div className={styles.themeGrid}>{themeCatalog.map((theme) => <button type="button" key={theme.id} title={theme.scope} className={draft.interests.includes(theme.label) ? styles.selectedTheme : ""} onClick={() => toggleTheme(theme.label)}>{theme.label}</button>)}</div></fieldset>
               <div className={styles.formGrid}><label>特别想吃<input value={mustEatText} onChange={(event) => setMustEatText(event.target.value)} placeholder="菜品或店铺，用逗号分隔" /></label><label>必去地点<input value={mustVisitText} onChange={(event) => setMustVisitText(event.target.value)} placeholder="景点或区域，用逗号分隔" /></label></div>
               <div className={styles.preview}><span>预计核验不超过 <b>{estimates.shortlist}</b> 个最终候选</span><span>预计计算约 <b>{estimates.routes}</b> 段相邻道路</span></div>
               <button className={styles.primary} disabled={creating}>{creating ? "正在建立任务…" : "创建 PlanningRun"}</button>
@@ -177,9 +187,9 @@ export default function TravelStudio({ user, initialBrief, initialRunId }: {
           <section className={styles.progressPanel}>
             <header className={styles.runHeader}><div><p>PLANNING RUN</p><h2>{snapshot.run.destination} · {snapshot.run.days} 天</h2><span>任务 {snapshot.run.id.slice(0, 8)} · {dateText(snapshot.run.updated_at)} 更新</span></div><div><b>{snapshot.progress.evidence_total}</b><span>研究证据</span><b>{snapshot.run.provider_poi_calls}</b><span>POI 调用</span><b>{snapshot.run.provider_route_calls}</b><span>路线调用</span></div></header>
             <ol className={styles.stageList}>{stages.map(([id, title, copy], index) => { const state = index < currentIndex ? "done" : index === currentIndex ? "active" : "waiting"; return <li key={id} data-state={state}><i>{state === "done" ? "✓" : String(index + 1).padStart(2,"0")}</i><div><strong>{title}</strong><span>{copy}</span></div><em>{state === "done" ? "完成" : state === "active" ? "当前" : "等待"}</em></li>; })}</ol>
-            <div className={styles.nextStep}><span>下一步声明</span><p>{nextStatement(snapshot.run.current_stage)}</p>{snapshot.run.current_stage === "brief" && <small>研究服务尚未接入自动执行；当前只保存了可恢复任务，并明确停在研究入口，没有伪造候选或地图结果。</small>}</div>
+            <div className={styles.nextStep}><span>下一步声明</span><p>{nextStatement(snapshot.run.current_stage)}</p>{snapshot.run.current_stage === "brief" && <small>任务已进入持久化队列，等待 Research Worker 领取；没有真实证据前不会伪造候选或地图结果。</small>}{snapshot.worker.active && <small>Research Worker 正在执行第 {snapshot.worker.attempt} 次尝试，租约到期前会持续发送心跳。</small>}</div>
             <div className={styles.metrics}>
-              <article><span>四条研究线</span><div>{Object.entries(snapshot.progress.evidence_by_lane).map(([lane,count]) => <p key={lane}><b>{laneLabels[lane] ?? lane}</b><i>{count}</i></p>)}</div></article>
+              <article><span>已选主题研究线</span><div>{(snapshot.progress.research_lanes.length ? snapshot.progress.research_lanes : Object.entries(snapshot.progress.evidence_by_lane).map(([lane, count]) => ({ lane, topic_label: laneLabels[lane] ?? lane, status: count ? "running" : "queued", attempt_count: 0, evidence_count: count, last_error: null }))).map((job) => <p key={job.lane} title={job.last_error ?? ""}><b>{job.topic_label || laneLabels[job.lane] || job.lane} · {laneStatusLabels[job.status] ?? job.status}</b><i>{job.evidence_count}</i></p>)}</div></article>
               <article><span>候选与核验</span><p><b>最终候选</b><i>{snapshot.progress.shortlisted}</i></p><p><b>已核验</b><i>{snapshot.progress.verified}</i></p><p><b>待消歧</b><i>{snapshot.progress.needs_confirmation}</i></p></article>
               <article><span>行程与道路</span><p><b>已排天数</b><i>{snapshot.progress.scheduled_days}</i></p><p><b>已选地点</b><i>{snapshot.progress.scheduled_places}</i></p><p><b>真实道路</b><i>{snapshot.progress.verified_routes}/{snapshot.progress.route_segments}</i></p></article>
             </div>

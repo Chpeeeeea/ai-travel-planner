@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "lane": {
+      "type": "string",
+      "enum": ["history", "culture", "scenery", "food", "architecture", "museums", "art", "local_life", "family", "nightlife", "shopping", "outdoors", "photography", "wellness", "faith", "film", "special_interest"]
+    },
+    "artifact_markdown": {
+      "type": "string"
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "properties": {
+          "place_name": { "type": "string" },
+          "aliases": {
+            "type": "array",
+            "items": { "type": "string" },
+            "maxItems": 12
+          },
+          "themes": {
+            "type": "array",
+            "items": { "type": "string" },
+            "maxItems": 8
+          },
+          "why_visit": { "type": "string" },
+          "watch_for": {
+            "type": "array",
+            "items": { "type": "string" },
+            "maxItems": 12
+          },
+          "stay_minutes": {
+            "type": "integer",
+            "minimum": 20,
+            "maximum": 360
+          },
+          "risk_flags": {
+            "type": "array",
+            "items": { "type": "string" },
+            "maxItems": 10
+          },
+          "source": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": ["official", "venue", "osm", "local_media", "xiaohongshu", "douyin", "other"]
+              },
+              "title": { "type": "string" },
+              "url": { "type": "string" },
+              "authority": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": ["kind", "title", "url", "authority"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["place_name", "aliases", "themes", "why_visit", "watch_for", "stay_minutes", "risk_flags", "source"],
+        "additionalProperties": false
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "properties": {
+        "sources_opened": { "type": "integer", "minimum": 0 },
+        "blocked_platforms": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["sources_opened", "blocked_platforms", "warnings"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["lane", "artifact_markdown", "evidence", "coverage"],
+  "additionalProperties": false
+}

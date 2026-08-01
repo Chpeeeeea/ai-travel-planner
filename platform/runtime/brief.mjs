@@ -1,3 +1,5 @@
+import { MAX_SELECTED_TRAVEL_TOPICS } from "./travel-topics.mjs";
+
 function cleanStrings(values) {
   if (!Array.isArray(values)) return [];
   return [...new Set(values.map((value) => String(value).trim().slice(0, 80)).filter(Boolean))].slice(0, 12);
@@ -23,7 +25,7 @@ export function normalizeBrief(input = {}) {
   return {
     destination,
     days,
-    interests: cleanStrings(input.interests),
+    interests: cleanStrings(input.interests).slice(0, MAX_SELECTED_TRAVEL_TOPICS),
     must_eat: cleanStrings(input.must_eat),
     must_visit: cleanStrings(input.must_visit),
     pace: String(input.pace || "moderate").slice(0, 30),

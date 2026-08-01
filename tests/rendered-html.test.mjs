@@ -27,6 +27,11 @@ test("server-renders the platform product home", async () => {
   assert.match(html, /20–40/);
   assert.match(html, /特别想吃/);
   assert.match(html, /必去地点/);
+  assert.match(html, /建筑漫步/);
+  assert.match(html, /博物馆/);
+  assert.match(html, /亲子家庭/);
+  assert.match(html, /户外运动/);
+  assert.match(html.replaceAll("<!-- -->", ""), /已选 4\/8/);
   assert.match(html, /锅包肉/);
   assert.match(html, /进入旅行研究工作台/);
   assert.match(html, /每天 N−1 段/);
@@ -51,6 +56,8 @@ test("server-renders the signed-in traveler research studio", async () => {
   assert.match(html, /把一次旅行，做成可恢复的研究任务/);
   assert.match(html, /创建 PlanningRun/);
   assert.match(html, /20–40 个/);
+  assert.match(html, /建筑漫步/);
+  assert.match(html.replaceAll("<!-- -->", ""), /已选 4\/8/);
   assert.match(html, /青田只是案例/);
   assert.match(html, /田鱼/);
 });
@@ -162,7 +169,8 @@ test("exposes an identity-scoped traveler API without browser secrets", async ()
   assert.match(tripProxy, /eq\(planningRuns\.ownerUserId, user\.userId\)/);
   assert.match(studio, /setTimeout\(poll, 5000\)/);
   assert.match(studio, /Research Worker/);
-  assert.match(studio, /研究服务尚未接入自动执行/);
+  assert.match(studio, /任务已进入持久化队列/);
+  assert.match(studio, /research_lanes/);
   assert.doesNotMatch(studio, /AMAP_WEBSERVICE_KEY|PLANNING_RUN_WRITE_TOKEN|authorization:/i);
 });
 

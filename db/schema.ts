@@ -18,12 +18,18 @@ export const planningRuns = sqliteTable("planning_runs", {
   dailyStopsMax: integer("daily_stops_max").notNull().default(6),
   providerPoiCalls: integer("provider_poi_calls").notNull().default(0),
   providerRouteCalls: integer("provider_route_calls").notNull().default(0),
+  workerAttempt: integer("worker_attempt").notNull().default(0),
+  workerVersion: text("worker_version"),
+  leaseOwner: text("lease_owner"),
+  leaseTokenHash: text("lease_token_hash"),
+  leaseExpiresAt: text("lease_expires_at"),
   lastError: text("last_error"),
   createdAt: createdAt(),
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [
   index("idx_planning_runs_owner_updated").on(table.ownerUserId, table.updatedAt),
   index("idx_planning_runs_status_updated").on(table.status, table.updatedAt),
+  index("idx_planning_runs_lease_stage").on(table.leaseExpiresAt, table.currentStage, table.updatedAt),
   index("idx_planning_runs_destination_created").on(table.destination, table.createdAt),
 ]);
 
@@ -53,6 +59,25 @@ export const researchEvidence = sqliteTable("research_evidence", {
 }, (table) => [
   index("idx_research_evidence_run_lane").on(table.runId, table.lane),
   index("idx_research_evidence_run_name").on(table.runId, table.normalizedName),
+]);
+
+export const researchLaneJobs = sqliteTable("research_lane_jobs", {
+  id: text("id").primaryKey(),
+  runId: text("run_id").notNull().references(() => planningRuns.id, { onDelete: "cascade" }),
+  lane: text("lane").notNull(),
+  topicLabel: text("topic_label").notNull().default(""),
+  status: text("status").notNull().default("queued"),
+  attemptCount: integer("attempt_count").notNull().default(0),
+  evidenceCount: integer("evidence_count").notNull().default(0),
+  artifactMarkdown: text("artifact_markdown").notNull().default(""),
+  lastError: text("last_error"),
+  startedAt: text("started_at"),
+  completedAt: text("completed_at"),
+  createdAt: createdAt(),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [
+  uniqueIndex("idx_research_lane_jobs_run_lane_unique").on(table.runId, table.lane),
+  index("idx_research_lane_jobs_run_status").on(table.runId, table.status),
 ]);
 
 export const candidates = sqliteTable("candidates", {

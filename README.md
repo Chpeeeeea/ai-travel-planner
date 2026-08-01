@@ -65,7 +65,7 @@ flowchart LR
 8. **发布结果**：`/trip` 把 POI、Day、Assignment、RouteSegment、来源与质量警告组装为统一 Trip 数据。Planner 使用它渲染卡片、候选点、道路/遥感地图和导航入口。
 9. **持续反馈**：工作台轮询当前用户的任务状态和事件。刷新或重新登录后从 D1 恢复，不依赖浏览器内存保存业务结果。
 
-当前第 3 步的自动 Research Worker 尚未部署；其余阶段已有可执行服务。任务因此会停在 `brief`，直到受信执行器写入真实证据。
+仓库已经包含可租约、可重试的 Research Worker。它根据用户选择动态创建最多 8 条主题研究线，并以最多 4 个 Codex Agent 有界并发执行；公共 Sites 仍需单独启动这个常驻进程。Worker 未在线时，任务会安全停在 `brief`，不会伪造真实证据。
 
 ### 失败与重试
 
@@ -100,10 +100,11 @@ flowchart LR
 | 高德 POI 2.0 核验与人工消歧接口 | 已完成 |
 | 每天 4–6 点编排与相邻道路服务 | 已完成 |
 | 统一 Trip 数据、卡片地图与青田案例 | 已完成 |
-| 自动 Research Worker | 下一阶段 |
+| Worker 租约、动态主题状态与失败重试 | 已完成 |
+| Codex 多主题有界并发检索执行器 | 已完成，公共环境待常驻部署 |
 | 动态任务的完整卡片地图结果页 | Research Worker 接通后收口 |
 
-新建任务目前会停在 `brief` 并显示“等待 Research Worker”。这是刻意的产品状态：在真实研究服务尚未执行前，平台不会伪造来源、候选、坐标或路线。
+新建任务先进入 `brief` 队列；在线 Worker 领取后进入 `researching`，工作台会显示每条研究线的等待、检索、完成或待重试状态。公共环境尚未启动 Worker 时会继续显示等待，这是可恢复的真实状态。
 
 ## 运行依赖
 
@@ -116,10 +117,10 @@ flowchart LR
 | 高德 JSAPI 2.0 | 地图、Marker、道路/遥感图层与交互 | 地图视图必需 | 已接入 |
 | 高德 JSAPI 安全代理 | 由 Worker 在 `/_AMapService/*` 代理并追加 `securityJsCode` | 生产 JSAPI 必需 | 已接入 |
 | 高德 Web Service API 2.0 | 最终 POI 核验与相邻路径规划 | 完成真实行程必需 | 已接入 |
-| 官方文旅与场馆页面 | 开放规则、历史与事实来源 | Research Worker 必需 | 接口可写入，自动采集待接入 |
-| 小红书 / OpenCLI Browser Bridge | 体验、店铺和现场摩擦发现 | 中国目的地研究的重要来源 | 自动 Worker 待接入 |
-| OpenStreetMap | 名称、区域与开放地理线索 | 默认研究来源 | 自动 Worker 待接入 |
-| AI 模型与工具执行环境 | 汇总多主题证据、解释推荐并驱动 Worker | 自动研究必需 | 部署方案待接入 |
+| 官方文旅与场馆页面 | 开放规则、历史与事实来源 | Research Worker 必需 | Codex 研究线已接入 |
+| 小红书 / OpenCLI Browser Bridge | 体验、店铺和现场摩擦发现 | 中国目的地研究的重要来源 | 由 `vibe-web-research` 按登录能力检索 |
+| OpenStreetMap | 名称、区域与开放地理线索 | 默认研究来源 | Codex 研究线已接入 |
+| Codex CLI / Agent 运行环境 | 用户所选主题检索、结构化输出和主流程驱动 | 自动研究必需 | 执行器已实现，需独立常驻部署 |
 
 平台不会使用高德承担“全网发现”。即使 Research Worker 暂时不可用，也只会停留在可恢复状态，不会退回到高德批量扫城。
 
@@ -148,7 +149,7 @@ flowchart LR
   -> Research Worker 领取任务
       -> ai-travel-planner 规范整个阶段顺序
       -> vibe-web-research 搜索多平台
-      -> history / culture / scenery / food Agents 并行研究
+      -> 按用户所选主题动态派发 Agents（最多 8 条、并发 4 条）
       -> 主 Agent 合并证据并写入 /research
       -> 主执行器依次调用 compile / verify / schedule / routes
   -> 网站轮询 D1 并展示进度与最终行程
@@ -158,14 +159,28 @@ flowchart LR
 
 ### 分 Agent 派发逻辑
 
-两天以上、至少三个主题或需要深度功课时，默认并行派发四条研究线：
+产品提供 16 个可选旅行主题，用户最多选择 8 个。历史遗迹、文化非遗、自然风景、地方美食只是默认推荐组合；Worker 按实际 Brief 动态创建研究任务：
 
-| Agent | 研究范围 | 必须产出 |
+| Agent ID | 用户主题 | 研究范围 |
 |---|---|---|
-| `history` | 年代、迁移、人物与历史地点 | `research/01-history.md` + 结构化证据 |
-| `culture` | 非遗、博物馆、手艺、社区与仪式 | `research/02-culture.md` + 结构化证据 |
-| `scenery` | 城市景观、自然、季节、安全与可达性 | `research/03-scenery.md` + 结构化证据 |
-| `food` | 地方菜、餐厅、咖啡馆与饮食习惯 | `research/04-food.md` + 结构化证据 |
+| `history` | 历史遗迹 | 年代、人物、迁徙、考古、历史建筑与地方记忆 |
+| `culture` | 文化非遗 | 非遗、手艺、民俗、节庆、社区文化与地方身份 |
+| `scenery` | 自然风景 | 山水、海滨、地貌、季节、公园与观景体验 |
+| `food` | 地方美食 | 地方菜、小吃、餐厅、咖啡馆、市场与饮食习惯 |
+| `architecture` | 建筑漫步 | 古建、近现代建筑、街区肌理、城市更新与步行体验 |
+| `museums` | 博物馆 | 博物馆、纪念馆、专题展馆、馆藏亮点与参观规则 |
+| `art` | 艺术展览 | 美术馆、画廊、公共艺术、设计空间、演出与当期展览 |
+| `local_life` | 在地生活 | 社区、早市、公共空间、本地休闲方式与生活节奏 |
+| `family` | 亲子家庭 | 儿童友好场馆、互动体验、乐园、休息与照护条件 |
+| `nightlife` | 夜游娱乐 | 夜景、夜市、演出、酒吧、夜间开放与晚间安全 |
+| `shopping` | 购物市集 | 市集、商圈、地方物产、手作店、书店与伴手礼 |
+| `outdoors` | 户外运动 | 徒步、骑行、露营、水上活动、滑雪与户外安全 |
+| `photography` | 摄影打卡 | 日出日落、机位、光线、天际线与拍摄限制 |
+| `wellness` | 康养度假 | 温泉、度假村、疗愈空间、慢旅行与季节适宜性 |
+| `faith` | 古建信仰 | 寺庙、教堂、祠堂、宗教艺术、礼仪与参访边界 |
+| `film` | 影视动漫 | 影视取景、文学地标、动漫游戏相关场所与主题体验 |
+
+目录外的用户兴趣会合并为一条 `special_interest` 自定义研究线，不丢失用户原始要求。未选择任何主题时才回退到默认四项。
 
 所有研究 Agent 接收同一份规范化 Brief，但每个 Agent 只负责一条研究线：
 
@@ -173,7 +188,7 @@ flowchart LR
 2. 官方政府、文旅、场馆和运营方页面优先核对事实。
 3. 小红书、抖音等平台用于发现真实体验、店铺和现场摩擦，不替代官方开放规则。
 4. 输出推荐原因、现场看点、建议停留、风险与来源，不填写高德 ID、坐标或路线。
-5. 主 Agent 等所有研究线完成后统一合并别名、去重和排序；不会把四份文档直接拼接成行程。
+5. 主 Agent 等所有已选研究线完成后统一合并别名、去重和排序；不会把多份文档直接拼接成行程。
 
 高德调用不下放给研究子 Agent。POI 核验与道路请求由一个主执行器串行控制小批次，确保 QPS、重试、缓存、消歧和调用计数一致。
 
@@ -191,7 +206,7 @@ flowchart LR
 
 ### Skill 为什么放在仓库里
 
-需要。仓库中的 [`skill/ai-travel-planner`](skill/ai-travel-planner) 是可审查、可版本化的事实源，必须与平台状态机和数据契约一起提交：
+需要。仓库中的 [`.agents/skills/ai-travel-planner`](.agents/skills/ai-travel-planner) 是可审查、可版本化的事实源，必须与平台状态机和数据契约一起提交。`.agents/skills` 同时是 Codex 官方支持的仓库级自动发现位置，因此 Worker 从仓库根目录启动时可以直接加载这个 Skill：
 
 - `SKILL.md`：触发条件、核心原则与完整执行顺序。
 - `references/`：数据契约、高德接入、卡片地图、分 Agent 研究、TREK 模式和平台边界。
@@ -220,6 +235,7 @@ flowchart LR
 Research Worker 与受信执行器接口使用服务器令牌：
 
 - `/api/planning-runs`：管理运行与合法阶段转换。
+- `/api/planning-runs/claim`：原子领取任务、续租、记录研究线开始/完成/失败并安全释放。
 - `/api/planning-runs/research`：幂等写入真实研究证据，高德调用固定为 0。
 - `/api/planning-runs/compile`：编译名称级候选池。
 - `/api/planning-runs/candidates`：读取候选、来源、风险和用户需求匹配。
@@ -250,6 +266,19 @@ npm run dev
 
 生产环境变量由 Sites 管理，不写入 Git。`AMAP_WEBSERVICE_KEY` 与浏览器 JSAPI Key 是两类不同的高德 Key。
 
+### 启动 Research Worker
+
+Worker 与网站分开运行；详细配置见 [research-worker/README.md](research-worker/README.md)。最小启动方式：
+
+```powershell
+$env:PLANNER_BASE_URL = "https://your-site.example"
+$env:PLANNING_RUN_WRITE_TOKEN = "<server-token>"
+$env:CODEX_EXECUTABLE = "C:\path\to\codex.exe"
+npm.cmd run worker:research -- --watch
+```
+
+Worker 使用 `codex exec --output-schema` 约束每条研究线的结果。Codex 子进程只做只读研究，且不会继承平台写入令牌或高德密钥。
+
 ## 验证
 
 ```bash
@@ -270,7 +299,8 @@ db/ + drizzle/          D1 模型与迁移
 platform/runtime/       Brief、研究、POI 和排程纯逻辑
 platform/server/        高德适配器与运行时安全边界
 platform/pipeline.py    可复现的离线候选与排程管线
-skill/ai-travel-planner 可复用 Codex Skill 源码
+.agents/skills/ai-travel-planner 仓库级 Codex Skill 源码
+research-worker/        任务租约、动态主题 Codex 派发与阶段推进
 tests/                  产品边界与运行时测试
 ```
 
@@ -289,7 +319,7 @@ tests/                  产品边界与运行时测试
 
 ## 下一步
 
-1. 接入可租约、可重试的 Research Worker，实际执行官方文旅、小红书、OSM 与多主题检索。
+1. 在独立常驻环境部署 Research Worker，并用真实非青田目的地完成端到端运行。
 2. 为需要人工处理的同名 POI 增加消歧页面。
 3. 将已发布动态任务直接渲染为现有 Planner 卡片地图，而不只返回 JSON。
 4. 增加按用户的任务数、POI 调用和路线调用配额。

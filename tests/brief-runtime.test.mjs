@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { normalizeBrief } from "../platform/runtime/brief.mjs";
+import { MAX_SELECTED_TRAVEL_TOPICS, TRAVEL_TOPICS, topicsForInterests } from "../platform/runtime/travel-topics.mjs";
 
 test("normalizes a traveler brief into the platform contract", () => {
   const brief = normalizeBrief({
@@ -24,4 +25,13 @@ test("normalizes a traveler brief into the platform contract", () => {
 test("rejects an invalid destination or duration", () => {
   assert.throws(() => normalizeBrief({ destination: "", days: 3 }), /destination/);
   assert.throws(() => normalizeBrief({ destination: "青田", days: 0 }), /days/);
+});
+
+test("maps a broad user-selected travel topic catalog into bounded research lanes", () => {
+  assert.ok(TRAVEL_TOPICS.length >= 16);
+  const selected = topicsForInterests(["历史", "博物馆", "建筑", "夜游", "摄影", "亲子", "户外", "温泉", "咖啡庄园"]);
+  assert.equal(selected.length, MAX_SELECTED_TRAVEL_TOPICS);
+  assert.deepEqual(selected.slice(0, 4).map((topic) => topic.id), ["history", "museums", "architecture", "nightlife"]);
+  assert.deepEqual(topicsForInterests([]).map((topic) => topic.id), ["history", "culture", "scenery", "food"]);
+  assert.equal(topicsForInterests(["咖啡庄园"])[0].id, "special_interest");
 });
