@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function QingtianCase() {
-  return <Planner data={tripData} />;
+  return <Planner data={tripData} summaryHref="/summary" summaryLabel="行程摘要" backHref="/case-study" backLabel="产品介绍" />;
 }

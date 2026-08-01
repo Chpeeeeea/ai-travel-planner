@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import AmapMap from "./AmapMap";
 import type { Assignment, Day, Poi, TripData } from "./travelTypes";
 
@@ -54,7 +54,17 @@ function normalizeAssignments(items: Assignment[], clearTimes = false) {
   }));
 }
 
-export default function Planner({ data }: { data: TripData }) {
+type PlannerProps = {
+  data: TripData;
+  backHref?: string;
+  backLabel?: string;
+  summaryHref?: string;
+  summaryLabel?: string;
+  editableRunId?: string;
+  exportBaseHref?: string;
+};
+
+export default function Planner({ data, backHref, backLabel = "返回任务", summaryHref, summaryLabel = "行程摘要", editableRunId, exportBaseHref }: PlannerProps) {
   const [days, setDays] = useState<Day[]>(data.days);
   const [selectedDayId, setSelectedDayId] = useState(data.days[0]?.id ?? "");
   const [selectedPoiId, setSelectedPoiId] = useState(data.days[0]?.assignments[0]?.poi_id ?? "");
@@ -65,13 +75,16 @@ export default function Planner({ data }: { data: TripData }) {
   const [mapFocusRevision, setMapFocusRevision] = useState(0);
   const [customizedDays, setCustomizedDays] = useState<Set<string>>(new Set());
   const [liveRouteSummary, setLiveRouteSummary] = useState<Record<string, { distance: number; duration: number; complete: boolean }>>({});
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "queued" | "error">("idle");
+  const persistenceQueue = useRef<Promise<void>>(Promise.resolve());
+  const persistenceRevision = useRef(0);
 
   const poiById = useMemo(() => new Map(data.pois.map((poi) => [poi.id, poi])), [data.pois]);
   const selectedDay = useMemo(() => days.find((day) => day.id === selectedDayId) ?? days[0], [days, selectedDayId]);
   const assignments = useMemo(() => [...selectedDay.assignments].sort((a, b) => a.order_index - b.order_index), [selectedDay.assignments]);
   const dayPois = useMemo(() => assignments.map((item) => poiById.get(item.poi_id)).filter((poi): poi is Poi => Boolean(poi)), [assignments, poiById]);
   const assignedIds = useMemo(() => new Set(days.flatMap((day) => day.assignments.map((item) => item.poi_id))), [days]);
-  const themes = ["全部", "历史", "文化", "风景", "美食"];
+  const themes = useMemo(() => ["全部", ...new Set(data.pois.flatMap((poi) => poi.themes ?? []))], [data.pois]);
   const candidatePois = useMemo(
     () => data.pois.filter((poi) => !assignedIds.has(poi.id) && (theme === "全部" || poi.themes?.includes(theme))),
     [assignedIds, data.pois, theme],
@@ -83,6 +96,12 @@ export default function Planner({ data }: { data: TripData }) {
   const live = liveRouteSummary[selectedDay.id];
   const totalDistance = live?.distance || staticDistance;
   const totalDuration = live?.duration || staticDuration;
+  const verifiedPoiCount = data.quality.verified_poi_count ?? data.pois.filter((poi) => poi.verification.status === "verified").length;
+  const verifiedRouteCount = data.quality.verified_route_count ?? data.days.reduce((total, day) => total + day.route_segments.filter((segment) => segment.status === "verified").length, 0);
+  const pendingRouteCount = data.quality.pending_route_count ?? data.days.reduce((total, day) => total + day.route_segments.filter((segment) => segment.status === "pending").length, 0);
+  const routeState = pendingRouteCount ? `${pendingRouteCount} 段道路处理中` : verifiedRouteCount ? "真实道路已核验" : "地图服务已连接";
+  const displayedRouteState = saveState === "saving" ? "正在保存行程调整" : saveState === "queued" ? "真实道路已加入重算队列" : saveState === "error" ? "行程调整保存失败" : routeState;
+  const brandMark = Array.from(data.trip.city.trim())[0] ?? "行";
 
   const selectPoi = useCallback((poiId: string) => setSelectedPoiId(poiId), []);
   const focusPoiOnMap = useCallback((poiId: string) => {
@@ -112,12 +131,30 @@ export default function Planner({ data }: { data: TripData }) {
     setSelectedPoiId(poiId);
   }
 
+  function persistDay(dayId: string, nextAssignments: Assignment[]) {
+    if (!editableRunId) return;
+    const revision = ++persistenceRevision.current;
+    setSaveState("saving");
+    persistenceQueue.current = persistenceQueue.current.catch(() => undefined).then(async () => {
+      const response = await fetch("/api/trips/itinerary", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ run_id: editableRunId, day_id: dayId, poi_ids: nextAssignments.map((item) => item.poi_id) }),
+      });
+      const result = await response.json().catch(() => ({})) as { error?: string };
+      if (!response.ok) throw new Error(result.error || "行程调整保存失败");
+      if (revision === persistenceRevision.current) setSaveState("queued");
+    }).catch(() => {
+      if (revision === persistenceRevision.current) setSaveState("error");
+    });
+  }
+
   function customizeDay(transform: (items: Assignment[]) => Assignment[]) {
-    setDays((current) => current.map((day) => day.id === selectedDay.id
-      ? { ...day, assignments: normalizeAssignments(transform([...day.assignments].sort((a, b) => a.order_index - b.order_index)), true), route_segments: [] }
-      : day));
+    const nextAssignments = normalizeAssignments(transform([...selectedDay.assignments].sort((a, b) => a.order_index - b.order_index)), true);
+    setDays((current) => current.map((day) => day.id === selectedDay.id ? { ...day, assignments: nextAssignments, route_segments: [] } : day));
     setCustomizedDays((current) => new Set(current).add(selectedDay.id));
     setRouteRevision((value) => value + 1);
+    persistDay(selectedDay.id, nextAssignments);
   }
 
   function addCandidate(poi: Poi) {
@@ -161,31 +198,32 @@ export default function Planner({ data }: { data: TripData }) {
     setCustomizedDays((current) => { const next = new Set(current); next.delete(original.id); return next; });
     setSelectedPoiId(original.assignments[0]?.poi_id ?? "");
     setRouteRevision((value) => value + 1);
+    persistDay(original.id, original.assignments);
   }
 
   return (
     <main className="app-shell">
       <header className="topbar">
         <div className="brand-block">
-          <div className="brand-mark">青</div>
+          <div className="brand-mark">{brandMark}</div>
           <div><p className="eyebrow">AI TRAVEL PLANNER</p><h1>{data.trip.title}</h1></div>
         </div>
         <div className="header-actions">
-          <span className="sync-state"><i /> 路线服务已连接</span>
-          <Link className="ghost-button portfolio-link" href="/summary">行程摘要</Link>
-          <Link className="ghost-button portfolio-link" href="/case-study">产品介绍</Link>
+          <span className={`sync-state ${saveState === "error" ? "sync-error" : ""}`}><i /> {displayedRouteState}</span>
+          {summaryHref && <Link className="ghost-button portfolio-link" href={summaryHref}>{summaryLabel}</Link>}
+          {backHref && <Link className="ghost-button portfolio-link" href={backHref}>{backLabel}</Link>}
         </div>
       </header>
 
       <section className="summary-strip" aria-label="行程概览">
-        <div><strong>3</strong><span>天行程</span></div>
-        <div><strong>{data.quality.verified_poi_count ?? 21}</strong><span>精选地点</span></div>
-        <div><strong>4</strong><span>兴趣主题</span></div>
-        <div><strong>实时</strong><span>道路刷新</span></div>
+        <div><strong>{data.days.length}</strong><span>天行程</span></div>
+        <div><strong>{verifiedPoiCount}</strong><span>已核验地点</span></div>
+        <div><strong>{Math.max(0, themes.length - 1)}</strong><span>兴趣主题</span></div>
+        <div><strong>{verifiedRouteCount}</strong><span>真实道路</span></div>
         <p>在卡片或地图中选择地点，加入、移除或调整顺序，路线会重新计算。</p>
       </section>
 
-      <nav className="day-tabs" aria-label="选择行程日期">
+      <nav className="day-tabs" aria-label="选择行程日期" style={{ "--day-count": Math.max(1, Math.min(7, days.length)) } as React.CSSProperties}>
         {days.map((day, index) => (
           <button key={day.id} className={day.id === selectedDay.id ? "active" : ""} onClick={() => chooseDay(day)} style={{ "--day-color": dayColors[index] } as React.CSSProperties}>
             <span>DAY {day.day_number}</span><strong>{day.title}</strong>
@@ -265,7 +303,7 @@ export default function Planner({ data }: { data: TripData }) {
             color={color}
             revision={routeRevision}
             focusRevision={mapFocusRevision}
-            researchArea={data.trip.map_view}
+            researchArea={data.trip.map_view ?? undefined}
             researchAreaName={data.trip.city}
             onSelect={selectPoi}
             onRouteSummary={updateRouteSummary}
@@ -297,7 +335,14 @@ export default function Planner({ data }: { data: TripData }) {
         </aside>
       </section>
 
-      <footer className="warning-bar"><strong>出发前检查</strong><span>{data.quality.warnings[0]}</span><span>{data.quality.warnings[1]}</span></footer>
+      <footer className="warning-bar"><strong>出发前检查</strong>{data.quality.warnings.length ? data.quality.warnings.slice(0, 3).map((warning) => <span key={warning}>{warning}</span>) : <span>已核验地点与相邻道路均已就绪，开放时间仍建议出发前复查。</span>}</footer>
+      {exportBaseHref && (
+        <nav className="export-bar" aria-label="导出行程">
+          <span>带走这份行程</span>
+          <a href={`${exportBaseHref}&format=markdown`}>下载可读行程</a>
+          <a href={`${exportBaseHref}&format=geojson`}>下载地图数据</a>
+        </nav>
+      )}
     </main>
   );
 }
