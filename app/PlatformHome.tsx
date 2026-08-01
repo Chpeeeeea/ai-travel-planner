@@ -21,10 +21,16 @@ const stages = [
   ["07", "卡片地图", "用同一份行程驱动介绍、地图和调整"],
 ];
 
+function parseCustomNeeds(value: string) {
+  return [...new Set(value.split(/[，,；;\n]+/).map((item) => item.trim()).filter(Boolean))].slice(0, 12);
+}
+
 export default function PlatformHome() {
   const [destination, setDestination] = useState("青田县");
   const [days, setDays] = useState(3);
   const [selectedThemes, setSelectedThemes] = useState(["历史", "文化", "风景", "美食"]);
+  const [mustEat, setMustEat] = useState("");
+  const [mustVisit, setMustVisit] = useState("");
   const [drafted, setDrafted] = useState(false);
   const estimates = useMemo(() => {
     const dailyStops = 5;
@@ -48,6 +54,8 @@ export default function PlatformHome() {
       destination,
       days,
       interests: selectedThemes,
+      must_eat: parseCustomNeeds(mustEat),
+      must_visit: parseCustomNeeds(mustVisit),
       pace: "moderate",
       source_policy: ["official", "xiaohongshu", "osm", "multi_topic_research"],
       candidate_target: { min: 20, max: 40 },
@@ -88,9 +96,21 @@ export default function PlatformHome() {
             {[1, 2, 3, 4, 5, 6, 7].map((value) => <option key={value} value={value}>{value} 天</option>)}
           </select></label>
           <fieldset><legend>兴趣重点</legend><div className={styles.themeGrid}>{themes.map((theme) => <button type="button" key={theme} className={selectedThemes.includes(theme) ? styles.selected : ""} onClick={() => toggleTheme(theme)} aria-pressed={selectedThemes.includes(theme)}>{theme}</button>)}</div></fieldset>
+          <fieldset className={styles.customNeeds}>
+            <legend>这次旅行最在意什么 <span>可选，多个内容用逗号分隔</span></legend>
+            <div className={styles.customNeedGrid}>
+              <label>特别想吃<input value={mustEat} onChange={(event) => { setMustEat(event.target.value); setDrafted(false); }} placeholder="例如：锅包肉、鸡架、老四季抻面" /></label>
+              <label>必去地点<input value={mustVisit} onChange={(event) => { setMustVisit(event.target.value); setDrafted(false); }} placeholder="例如：沈阳故宫、中街" /></label>
+            </div>
+            <p>研究会优先寻找相关证据；必去地点仍需通过真实位置和开放状态核验。</p>
+          </fieldset>
           <button className={styles.primary} type="submit">估算本次规划任务</button>
           {drafted && <div className={styles.estimate} role="status">
             <p><strong>{destination} · {days} 天</strong><span>{selectedThemes.join(" / ") || "城市代表性体验"}</span></p>
+            {(parseCustomNeeds(mustEat).length > 0 || parseCustomNeeds(mustVisit).length > 0) && <p className={styles.needSummary}>
+              {parseCustomNeeds(mustEat).length > 0 && <span><b>特别想吃</b>{parseCustomNeeds(mustEat).join("、")}</span>}
+              {parseCustomNeeds(mustVisit).length > 0 && <span><b>必去</b>{parseCustomNeeds(mustVisit).join("、")}</span>}
+            </p>}
             <div><span>发现约 {estimates.discovery} 个名称</span><span>高德核验 {estimates.shortlist} 个</span><span>路线约 {estimates.routes} 段</span></div>
             <button type="button" onClick={downloadBrief}>下载研究 Brief</button>
           </div>}

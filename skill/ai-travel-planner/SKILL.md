@@ -39,11 +39,12 @@ description: "Research-first travel planning platform workflow that compiles off
 | 城市/区域 | 必填 |
 | 日期或天数 | 1 天 |
 | 兴趣主题 | 城市代表性文化与用户已表达偏好 |
+| 特别想吃 `must_eat` | 无；多个菜品或店铺需求分别记录 |
 | 每日时间窗 | 09:00–18:00 |
 | 强度 | 适中，每天 3–5 个主 POI |
 | 交通方式 | 同片区步行，跨片区公交/打车 |
 | 住宿锚点 | 未提供则不虚构 |
-| 必去/排除/已预约 | 无 |
+| 必去 `must_visit` / 排除 / 已预约 | 无 |
 | 输出 | `trip.json` + Markdown + 卡片 HTML；能连高德时再生成真实路线与地图 |
 
 只有会实质改变结果且无法安全推断的信息才询问用户。高德 Key 缺失不阻止研究和结构搭建，但必须阻止把候选地点标为“已核验”。
@@ -67,7 +68,7 @@ python scripts/amap_mcp_bridge.py list-tools
 
 ### 1. 形成旅行 Brief
 
-把输入规范化成：目的地、日期、旅行者、兴趣、节奏、每日时间窗、交通偏好、住宿锚点、必去、排除、预约约束、预算提示和输出偏好。
+把输入规范化成：目的地、日期、旅行者、兴趣、特别想吃、节奏、每日时间窗、交通偏好、住宿锚点、必去、排除、预约约束、预算提示和输出偏好。`must_eat` 与 `must_visit` 必须进入 Brief，不能只留在对话里。
 
 先创建 `trip.json` 骨架：
 
@@ -95,7 +96,7 @@ python scripts/planning_pipeline.py compile --brief brief.json --evidence resear
 python scripts/planning_pipeline.py audit --input candidate-pool.json
 ```
 
-候选不足 20 个时保留警告，不为凑数制造地点；超过 40 个时只把得分最高的 40 个送入核验。
+候选不足 20 个时保留警告，不为凑数制造地点；超过 40 个时只把得分最高的 40 个送入核验。有研究证据且名称或别名命中 `must_visit` 的候选优先进入 shortlist；名称、推荐理由或现场看点命中 `must_eat` 时提高匹配分。用户约束不能绕过 POI 核验。
 
 ### 3. 用高德 MCP 对齐真实 POI
 

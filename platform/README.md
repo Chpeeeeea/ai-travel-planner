@@ -28,3 +28,16 @@ python platform/pipeline.py audit --input itinerary.json
 ```
 
 高德调用由 provider adapter 或 Skill 的 MCP bridge 执行；本脚本不读取密钥，也不会在研究阶段调用高德。
+
+## 平台服务
+
+服务端使用与离线脚本相同的边界：
+
+1. `POST /api/planning-runs` 创建 Brief；支持 `must_eat` 与 `must_visit` 用户约束。
+2. `POST /api/planning-runs/research` 分批写入研究证据；单批最多 100 条，重复来源幂等更新。
+3. `POST /api/planning-runs/compile` 统一做别名合并、去重评分并持久化最多 40 个 shortlist。
+4. `GET /api/planning-runs/candidates?run_id=...` 获取候选审阅结果。
+
+这些接口都使用服务端令牌保护。研究与候选编译不会读取高德 Key，阶段事件中的 POI/路线调用增量固定为 0。
+
+候选编译只对已有研究证据应用用户约束：名称或别名命中 `must_visit` 时强制优先排序，介绍或现场看点命中 `must_eat` 时增加匹配分；两者仍保持 `candidate` 状态，等待高德核验。

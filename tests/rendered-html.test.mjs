@@ -25,6 +25,9 @@ test("server-renders the platform product home", async () => {
   assert.match(html, /小红书/);
   assert.match(html, /OSM/);
   assert.match(html, /20–40/);
+  assert.match(html, /特别想吃/);
+  assert.match(html, /必去地点/);
+  assert.match(html, /锅包肉/);
   assert.match(html, /每天 N−1 段/);
   assert.match(html, /青田三日只是案例/);
   assert.doesNotMatch(html, /Your site is taking shape|react-loading-skeleton/);
@@ -98,6 +101,7 @@ test("downloads the Markdown summary as UTF-8 with BOM", async () => {
 test("defines durable PlanningRun stages and protected API access", async () => {
   const schema = await readFile(new URL("../db/schema.ts", import.meta.url), "utf8");
   const api = await readFile(new URL("../app/api/planning-runs/route.ts", import.meta.url), "utf8");
+  const planningRuntime = await readFile(new URL("../platform/server/planning-runtime.ts", import.meta.url), "utf8");
   const hosting = JSON.parse(await readFile(new URL("../.openai/hosting.json", import.meta.url), "utf8"));
   const migration = await readFile(new URL("../drizzle/0000_careless_enchantress.sql", import.meta.url), "utf8");
   for (const table of ["planning_runs", "planning_briefs", "research_evidence", "candidates", "provider_matches", "itinerary_days", "assignments", "route_segments", "planning_run_events"]) {
@@ -105,8 +109,24 @@ test("defines durable PlanningRun stages and protected API access", async () => 
     assert.match(migration, new RegExp("CREATE TABLE `" + table + "`"));
   }
   assert.equal(hosting.d1, "DB");
-  assert.match(api, /PLANNING_RUN_WRITE_TOKEN/);
+  assert.match(planningRuntime, /PLANNING_RUN_WRITE_TOKEN/);
   assert.match(api, /Invalid stage transition/);
   assert.match(api, /providerPoiCalls/);
   assert.match(api, /providerRouteCalls/);
+  assert.match(api, /must_eat/);
+  assert.match(api, /must_visit/);
+});
+
+test("keeps research ingestion and candidate compilation provider-free", async () => {
+  const researchApi = await readFile(new URL("../app/api/planning-runs/research/route.ts", import.meta.url), "utf8");
+  const compileApi = await readFile(new URL("../app/api/planning-runs/compile/route.ts", import.meta.url), "utf8");
+  const reviewApi = await readFile(new URL("../app/api/planning-runs/candidates/route.ts", import.meta.url), "utf8");
+  const runtime = await readFile(new URL("../platform/runtime/research.mjs", import.meta.url), "utf8");
+  assert.match(researchApi, /evidence batches are limited to 100 items/);
+  assert.match(researchApi, /poiCalls: 0/);
+  assert.match(compileApi, /currentStage !== "researching"/);
+  assert.match(compileApi, /Math\.min\(40, run\.candidateMax\)/);
+  assert.match(compileApi, /poiCalls: 0/);
+  assert.match(reviewApi, /sent_to_amap/);
+  assert.doesNotMatch(runtime, /AMAP_|restapi\.amap|webapi\.amap|maps_text_search|provider_poi_id|\blng\b|\blat\b/);
 });

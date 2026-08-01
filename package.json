@@ -1,6 +1,6 @@
 {
   "name": "ai-travel-planner-platform",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
@@ -9,7 +9,7 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "vinext start",
-    "test": "npm run build && node --test tests/rendered-html.test.mjs && npm run test:pipeline",
+    "test": "npm run build && node --test tests/rendered-html.test.mjs tests/research-runtime.test.mjs && npm run test:pipeline",
     "test:pipeline": "python -m unittest discover -s platform/tests -p \"test_*.py\"",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate"

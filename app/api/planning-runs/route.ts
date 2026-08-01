@@ -1,50 +1,21 @@
 import { desc, eq } from "drizzle-orm";
+import { dataLayer, deny, digest, routeError, stageOrder, type RunStage } from "../../../platform/server/planning-runtime";
 
 type BriefInput = {
   destination?: string;
   days?: number;
   interests?: string[];
+  must_eat?: string[];
+  must_visit?: string[];
   pace?: string;
   source_policy?: string[];
   candidate_target?: { min?: number; max?: number };
   daily_stops?: { min?: number; max?: number };
 };
 
-const stageOrder = ["brief", "researching", "shortlisted", "verifying", "scheduled", "routing", "published"] as const;
-type RunStage = typeof stageOrder[number];
-
-async function runtimeSecrets() {
-  const { env } = await import("cloudflare:workers");
-  return env as unknown as { PLANNING_RUN_WRITE_TOKEN?: string };
-}
-
-async function dataLayer() {
-  const [{ getDb }, schema] = await Promise.all([import("../../../db"), import("../../../db/schema")]);
-  return { getDb, ...schema };
-}
-
-async function digest(value: string) {
-  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
-async function authorized(request: Request) {
-  const expected = (await runtimeSecrets()).PLANNING_RUN_WRITE_TOKEN;
-  const supplied = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
-  if (!expected || !supplied) return false;
-  return await digest(expected) === await digest(supplied);
-}
-
-async function deny(request: Request) {
-  if (!(await runtimeSecrets()).PLANNING_RUN_WRITE_TOKEN) {
-    return Response.json({ error: "PlanningRun API is not configured" }, { status: 503 });
-  }
-  return await authorized(request) ? null : Response.json({ error: "Unauthorized" }, { status: 401 });
-}
-
 function cleanStrings(values: unknown) {
   if (!Array.isArray(values)) return [];
-  return [...new Set(values.map((value) => String(value).trim()).filter(Boolean))].slice(0, 12);
+  return [...new Set(values.map((value) => String(value).trim().slice(0, 80)).filter(Boolean))].slice(0, 12);
 }
 
 function normalizeBrief(input: BriefInput) {
@@ -52,25 +23,21 @@ function normalizeBrief(input: BriefInput) {
   const days = Number(input.days);
   if (!destination || destination.length > 80) throw new Error("destination must be 1–80 characters");
   if (!Number.isInteger(days) || days < 1 || days > 14) throw new Error("days must be an integer between 1 and 14");
-  const candidateMin = Math.max(10, Math.min(40, Number(input.candidate_target?.min ?? 20)));
-  const candidateMax = Math.max(candidateMin, Math.min(60, Number(input.candidate_target?.max ?? 40)));
-  const dailyStopsMin = Math.max(2, Math.min(6, Number(input.daily_stops?.min ?? 4)));
-  const dailyStopsMax = Math.max(dailyStopsMin, Math.min(8, Number(input.daily_stops?.max ?? 6)));
+  const candidateMin = Math.max(20, Math.min(40, Number(input.candidate_target?.min ?? 20)));
+  const candidateMax = Math.max(candidateMin, Math.min(40, Number(input.candidate_target?.max ?? 40)));
+  const dailyStopsMin = Math.max(4, Math.min(6, Number(input.daily_stops?.min ?? 4)));
+  const dailyStopsMax = Math.max(dailyStopsMin, Math.min(6, Number(input.daily_stops?.max ?? 6)));
   return {
     destination,
     days,
     interests: cleanStrings(input.interests),
+    must_eat: cleanStrings(input.must_eat),
+    must_visit: cleanStrings(input.must_visit),
     pace: String(input.pace || "moderate").slice(0, 30),
     source_policy: cleanStrings(input.source_policy).length ? cleanStrings(input.source_policy) : ["official", "xiaohongshu", "osm", "multi_topic_research"],
     candidate_target: { min: candidateMin, max: candidateMax },
     daily_stops: { min: dailyStopsMin, max: dailyStopsMax },
   };
-}
-
-function routeError(error: unknown) {
-  const message = error instanceof Error ? error.message : "Unexpected error";
-  if (message.includes("no such table")) return "PlanningRun tables are unavailable; apply the generated D1 migration first.";
-  return message;
 }
 
 export async function GET(request: Request) {

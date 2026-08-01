@@ -122,18 +122,31 @@ def compile_group(group: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def rank_candidate(candidate: dict[str, Any], interests: list[str]) -> float:
+def constraint_fit(candidate: dict[str, Any], brief: dict[str, Any]) -> tuple[bool, list[str]]:
+    name_keys = {normalized_name(value) for value in [candidate["canonical_name"], *candidate["aliases"]]}
+    must_visit_match = any(normalized_name(value) in name_keys for value in (brief.get("must_visit") or []))
+    searchable = normalized_name(" ".join([
+        candidate["canonical_name"], *candidate["aliases"], candidate["why_visit"], *candidate["watch_for"]
+    ]))
+    must_eat_matches = [value for value in (brief.get("must_eat") or []) if normalized_name(value) in searchable]
+    return must_visit_match, unique_strings(must_eat_matches)
+
+
+def rank_candidate(candidate: dict[str, Any], interests: list[str], brief: dict[str, Any] | None = None) -> float:
     sources = candidate["source_refs"]
     platforms = {source["kind"] for source in sources}
     interest_keys = {normalized_name(value) for value in interests}
     theme_keys = {normalized_name(value) for value in candidate["themes"]}
     interest_fit = len(interest_keys & theme_keys) / max(1, len(interest_keys)) if interest_keys else 0.5
+    must_visit_match, must_eat_matches = constraint_fit(candidate, brief or {})
     score = (
         max((source["authority"] for source in sources), default=0) * 30
         + min(20, len(platforms) * 8)
         + interest_fit * 25
         + min(10, max(0, len(candidate["themes"]) - 1) * 5)
         + min(10, candidate["evidence_count"] * 2)
+        + (100 if must_visit_match else 0)
+        + min(40, len(must_eat_matches) * 25)
         - min(20, len(candidate["risk_flags"]) * 5)
     )
     return round(score, 2)
@@ -145,8 +158,12 @@ def compile_candidates(brief: dict[str, Any], evidence: dict[str, Any], minimum:
     merged = merge_evidence(evidence.get("items") or [])
     interests = brief.get("interests") or []
     for candidate in merged:
-        candidate["score"] = rank_candidate(candidate, interests)
-    ranked = sorted(merged, key=lambda item: (-item["score"], item["canonical_name"]))
+        must_visit_match, must_eat_matches = constraint_fit(candidate, brief)
+        candidate["must_visit_match"] = must_visit_match
+        candidate["matched_must_eat"] = must_eat_matches
+        candidate["user_priority"] = "must_visit" if must_visit_match else "must_eat" if must_eat_matches else None
+        candidate["score"] = rank_candidate(candidate, interests, brief)
+    ranked = sorted(merged, key=lambda item: (-int(item["must_visit_match"]), -item["score"], item["canonical_name"]))
     shortlist = ranked[:maximum]
     warnings = []
     if len(shortlist) < minimum:

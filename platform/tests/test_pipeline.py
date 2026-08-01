@@ -49,6 +49,26 @@ class PipelineTest(unittest.TestCase):
         self.assertIn("禁止路线调用", manifest["policy"])
         self.assertTrue(all(query["citylimit"] for query in manifest["queries"]))
 
+    def test_user_needs_prioritize_only_evidenced_candidates(self):
+        research = {"items": [
+            evidence("热门公园", "official", ["风景"]),
+            {**evidence("沈阳故宫", "other", ["历史"]), "risk_flags": ["开放时间待核验"]},
+            {**evidence("老字号饭店", "other", ["美食"]), "why_visit": "招牌锅包肉值得专程尝试"},
+        ]}
+        brief = {
+            "destination": "沈阳",
+            "days": 1,
+            "interests": ["风景", "美食"],
+            "must_visit": ["沈阳故宫"],
+            "must_eat": ["锅包肉"],
+        }
+        result = compile_candidates(brief, research, 1, 3)
+        self.assertEqual(result["candidates"][0]["canonical_name"], "沈阳故宫")
+        self.assertEqual(result["candidates"][0]["user_priority"], "must_visit")
+        food = next(item for item in result["candidates"] if item["canonical_name"] == "老字号饭店")
+        self.assertEqual(food["matched_must_eat"], ["锅包肉"])
+        self.assertIsNone(food["verification"]["provider_poi_id"])
+
     def test_schedule_only_routes_adjacent_selected_places(self):
         candidates = []
         for index in range(10):
