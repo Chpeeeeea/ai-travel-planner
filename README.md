@@ -1,39 +1,51 @@
-# 青田 AI Travel Planner Demo
+# AI Travel Planner
 
-这是 `ai-travel-planner` 的首个真实城市 Demo。四条主题研究线先分别研究历史、文化、风景和美食，主流程再汇编候选地点、调用高德核验 POI 与相邻路线，最后由同一份 `trip.json` 驱动卡片和地图。
+AI Travel Planner 是“研究优先、地图收口”的旅行规划平台。青田三日是仓库中的第一条真实目的地案例，不是产品本身。
 
-## 当前能力
+## 产品流程
 
-- 3 天完整路线，美食为主线但不等于纯吃。
+```text
+官方文旅 / 小红书 / OSM / 历史·文化·风景·美食研究
+  -> 生成名称级候选池，不调用高德
+  -> 别名合并、去重与评分，缩小到 20–40 个
+  -> 高德只核验最终候选的名称、实体与 GCJ-02 位置
+  -> AI 每天选择 4–6 个地点并做区域编排
+  -> 只为同一天相邻行程点计算真实道路
+  -> 同一份行程数据驱动卡片、高德 JSAPI 和导出
+```
+
+这条边界控制三类风险：研究阶段不会把“听说过的名称”伪装成真实 POI；候选池不会产生路线调用；地图费用集中在最终能进入行程的少量地点。
+
+## 当前实现
+
+- `/`：平台产品入口，可生成目的地研究 Brief，并预估候选核验与路线调用量。
+- `/cases/qingtian`：青田三日交互案例，包含卡片、候选地点、高德道路与遥感图层。
+- `platform/pipeline.py`：可执行的离线管线，负责候选合并评分、高德核验清单、每日编排和相邻路线清单。
+- `cases/qingtian/trip.json`：青田案例的最终行程事实源。
+- `skill/ai-travel-planner`：与产品管线一致的 Codex Skill 源码。
+
+## 高德调用策略
+
+- 研究和候选生成：0 次高德调用。
+- POI：只对排名后的 20–40 个候选执行文本搜索与详情核验。
+- 路线：若一天安排 N 个地点，只请求 N−1 段相邻道路。
+- JSAPI：只负责已生成行程的呈现、图层切换和交互重排。
+
+## 青田案例
+
+- 3 天，美食为主线，同时覆盖历史、文化和风景。
 - 21 个已核验高德 POI，1 个地点仍待消歧。
-- 15 段已核验路线距离与耗时。
-- 桌面端同时显示行程、地图和候选地点三栏。
-- 平板和手机使用“行程 / 地图 / 候选”三视图，核心功能不因屏幕变窄而消失。
-- 候选点可在地图查看、智能插入、调整顺序或移除。
-- 地图可切换道路与遥感图层，遥感模式叠加路网和地名。
-- 地图首次打开聚焦当前旅行研究区；移动端从隐藏视图切到地图后会重新计算视口，不会停留在默认城市或空白区域。
-- 正式行程点与候选点均可双击放大到街区级，并可用“研究区”按钮返回目的地全域；切换日期或编辑后聚焦当天路线。
+- 15 段已核验相邻路线。
+- 支持候选点插入、地点说明、地图双击放大、研究区复位以及道路/遥感图层切换。
 
-当前地图使用高德 JSAPI 和 GCJ-02 坐标。相邻地点会按行程顺序请求真实步行或驾车道路；请求失败的路段才使用虚线占位且不伪造耗时。生产环境通过服务端代理保护高德安全密钥。
+公开产品与案例：[https://qingtian-ai-travel.amandeepchenisekyana.chatgpt.site](https://qingtian-ai-travel.amandeepchenisekyana.chatgpt.site)
 
-公开 Demo：[https://qingtian-ai-travel.amandeepchenisekyana.chatgpt.site](https://qingtian-ai-travel.amandeepchenisekyana.chatgpt.site)
-
-## 本地运行
+## 本地运行与验证
 
 ```bash
 npm install
 npm run dev
-```
-
-打开 `http://localhost:3001`（若 3000 端口空闲，开发服务会优先使用 3000）。
-
-## 验证
-
-```bash
-npm run build
 npm test
 ```
 
-旅行数据位于 `trip.json`。研究文档与静态 HTML、Markdown、GeoJSON 交付位于相邻的 `qingtian-food-demo` 目录。
-
-阶段更新和 GitHub 发布要求见 `AGENTS.md`；所有阶段变化必须同步记录到 `CHANGELOG.md`。
+阶段更新和发布要求见 `AGENTS.md`，管线文件格式与命令见 `platform/README.md`。

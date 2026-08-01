@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
-import tripData from "../trip.json";
-import Planner from "./Planner";
+import PlatformHome from "./PlatformHome";
 
 export const metadata: Metadata = {
-  title: "青田三日 · 山水侨乡食游",
-  description: "从多主题研究、真实 POI 到三日卡片与地图联动的 AI 旅行规划 Demo。",
+  title: "AI Travel Planner · 先研究，再规划真实路线",
+  description: "从官方文旅、小红书、OSM 与多主题研究生成候选池，只核验最终 POI 和相邻路线的 AI 旅行规划平台。",
 };
 
 export default function Home() {
-  return <Planner data={tripData} />;
+  return <PlatformHome />;
 }

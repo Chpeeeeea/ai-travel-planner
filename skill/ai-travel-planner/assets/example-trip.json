@@ -1,0 +1,79 @@
+{
+  "schema_version": "1.0",
+  "trip": {
+    "id": "example-trip",
+    "title": "示例城市两日旅行",
+    "city": "示例城市",
+    "timezone": "Asia/Shanghai",
+    "coordinate_system": "GCJ-02",
+    "start_date": null,
+    "end_date": null,
+    "default_mode": "mixed",
+    "daily_window": {"start": "09:00", "end": "18:00"},
+    "hotel_poi_id": null,
+    "assumptions": ["本文件仅用于结构与渲染测试，不代表真实旅行数据"]
+  },
+  "pois": [
+    {
+      "id": "fixture-a",
+      "provider": "fixture",
+      "provider_poi_id": null,
+      "name": "示例博物馆 A",
+      "aliases": [],
+      "address": "示例地址 A",
+      "adcode": "",
+      "typecode": "140000",
+      "location": {"lng": 120.10, "lat": 30.20, "coord_system": "GCJ-02"},
+      "business": {"rating": null, "cost": null, "open_hours": null},
+      "photos": [],
+      "content": {"why_visit": "展示卡片中的文化看点字段。", "watch_for": ["示例细节"], "stay_minutes": 120},
+      "verification": {"status": "candidate", "verified_at": null, "query": "", "match_confidence": null, "source_url": null}
+    },
+    {
+      "id": "fixture-b",
+      "provider": "fixture",
+      "provider_poi_id": null,
+      "name": "示例古建 B",
+      "aliases": [],
+      "address": "示例地址 B",
+      "adcode": "",
+      "typecode": "110000",
+      "location": {"lng": 120.16, "lat": 30.24, "coord_system": "GCJ-02"},
+      "business": {"rating": null, "cost": null, "open_hours": null},
+      "photos": [],
+      "content": {"why_visit": "展示路线与地点卡联动。", "watch_for": ["示例构件"], "stay_minutes": 90},
+      "verification": {"status": "candidate", "verified_at": null, "query": "", "match_confidence": null, "source_url": null}
+    }
+  ],
+  "days": [
+    {
+      "id": "day-1",
+      "day_number": 1,
+      "date": null,
+      "title": "文化核心区",
+      "window": {"start": "09:00", "end": "18:00"},
+      "start_anchor_poi_id": null,
+      "end_anchor_poi_id": null,
+      "assignments": [
+        {"poi_id": "fixture-a", "order_index": 0, "arrival_time": "09:00", "departure_time": "11:00", "locked": false, "notes": ""},
+        {"poi_id": "fixture-b", "order_index": 1, "arrival_time": null, "departure_time": null, "locked": false, "notes": ""}
+      ],
+      "route_segments": [
+        {"from_poi_id": "fixture-a", "to_poi_id": "fixture-b", "mode": "walking", "provider": null, "distance_m": null, "duration_s": null, "geometry": [], "status": "pending", "verified_at": null, "summary": ""}
+      ]
+    },
+    {
+      "id": "day-2",
+      "day_number": 2,
+      "date": null,
+      "title": "待规划",
+      "window": {"start": "09:00", "end": "18:00"},
+      "start_anchor_poi_id": null,
+      "end_anchor_poi_id": null,
+      "assignments": [],
+      "route_segments": []
+    }
+  ],
+  "provenance": {"research_sources": [], "poi_provider": "amap-mcp", "route_provider": "amap-mcp", "generated_at": "2026-07-31T00:00:00+08:00", "updated_at": "2026-07-31T00:00:00+08:00"},
+  "quality": {"status": "draft", "warnings": ["示例数据，尚未连接高德"], "unverified_poi_count": 2, "pending_route_count": 1}
+}

@@ -1,4 +1,4 @@
-import tripData from "../../../trip.json";
+import tripData from "../../../cases/qingtian/trip.json";
 
 function createMarkdown() {
   const poiById = new Map(tripData.pois.map((poi) => [poi.id, poi]));
@@ -38,4 +38,3 @@ export async function GET() {
     },
   });
 }
-
