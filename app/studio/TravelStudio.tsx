@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { MAX_SELECTED_TRAVEL_TOPICS, TRAVEL_TOPICS } from "../../platform/runtime/travel-topics.mjs";
 import styles from "./studio.module.css";
+import reviewStyles from "./review.module.css";
 
 const stages = [
   ["brief", "旅行需求", "保存目的地、天数和硬约束"],
-  ["researching", "多源研究", "官方文旅、小红书、OSM 与四条主题线"],
+  ["researching", "多源研究", "官方文旅、小红书、OSM 与用户所选主题线"],
   ["shortlisted", "候选编译", "别名合并、去重评分，缩到 20–40 个"],
   ["verifying", "位置核验", "高德只确认最终候选的名称与坐标"],
   ["scheduled", "每日编排", "从已核验地点中选择每天 4–6 个"],
@@ -43,7 +44,7 @@ function splitNeeds(value: string) { return [...new Set(value.split(/[，,、\n]
 function dateText(value: string) { return new Intl.DateTimeFormat("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(value)); }
 
 function nextStatement(stage: string) {
-  if (stage === "brief") return "接下来：Research Worker 读取 Brief，并行收集官方文旅、小红书、OSM 与历史、文化、风景、美食证据。此阶段高德调用必须为 0。";
+  if (stage === "brief") return "接下来：Research Worker 读取 Brief，按你选择的主题并行检索官方文旅、小红书、OSM 与开放 Web。此阶段高德调用必须为 0。";
   if (stage === "researching") return "接下来：把多条研究证据编译成名称级候选池，合并别名并缩小到 20–40 个。";
   if (stage === "shortlisted") return "接下来：高德只核验最终候选；同名或跨城结果会进入人工确认。";
   if (stage === "verifying") return "接下来：只使用已核验 POI，每天选择 4–6 个并完成区域聚类和顺序优化。";
@@ -193,6 +194,7 @@ export default function TravelStudio({ user, initialBrief, initialRunId }: {
               <article><span>候选与核验</span><p><b>最终候选</b><i>{snapshot.progress.shortlisted}</i></p><p><b>已核验</b><i>{snapshot.progress.verified}</i></p><p><b>待消歧</b><i>{snapshot.progress.needs_confirmation}</i></p></article>
               <article><span>行程与道路</span><p><b>已排天数</b><i>{snapshot.progress.scheduled_days}</i></p><p><b>已选地点</b><i>{snapshot.progress.scheduled_places}</i></p><p><b>真实道路</b><i>{snapshot.progress.verified_routes}/{snapshot.progress.route_segments}</i></p></article>
             </div>
+            {snapshot.progress.needs_confirmation > 0 && <div className={reviewStyles.callout}><div><strong>{snapshot.progress.needs_confirmation} 个地点需要你确认</strong><span>同名或跨城结果不会自动进入日程；核对行政区和地址后，任务会继续排程。</span></div><Link href={`/disambiguation?run_id=${encodeURIComponent(snapshot.run.id)}`}>确认地点 →</Link></div>}
             <section className={styles.events}><h3>运行记录</h3>{snapshot.events.map((event) => <article key={event.id}><i /><div><strong>{event.message}</strong><span>{dateText(event.created_at)} · POI {event.poi_calls} / Route {event.route_calls}</span></div></article>)}</section>
             {snapshot.run.current_stage === "published" && <div className="studio-result-actions"><Link className={styles.resultLink} href={`/trip?run_id=${encodeURIComponent(snapshot.run.id)}`}>打开卡片地图 →</Link><a href={`/api/trips/trip?run_id=${encodeURIComponent(snapshot.run.id)}`}>查看技术数据</a></div>}
             {error && <p className={styles.error} role="alert">{error}</p>}
