@@ -34,6 +34,17 @@ Give every research Agent the normalized travel brief and exactly one lane. Requ
 
 Research Agents must not call AMap concurrently. The main Agent owns provider calls so personal-key QPS, retries, cache and POI matching remain deterministic.
 
+## Skill dependencies and platform handoff
+
+- `ai-travel-planner` owns orchestration, stage boundaries, candidate compilation and final delivery.
+- `vibe-web-research` is required for read-only platform discovery; it may use browser bridges for sites whose useful results depend on a logged-in session.
+- `content-analysis` is optional after an article, video or transcript has already been acquired; it does not replace source discovery.
+- Image and card-generation skills are optional presentation dependencies and must not create POI, coordinate or route facts.
+
+The deployed website does not execute a local Skill folder by itself. Run this Skill in a trusted Research Worker or Agent environment, then write structured evidence and later-stage results through the protected PlanningRun APIs. Keep the repository copy of the Skill as the versioned source of truth; treat a local Codex installation as a synchronized development copy.
+
+When using multiple research Agents, only the research lanes run in parallel. The orchestrating Agent waits for every required lane, compiles the shared candidate pool once, and remains the sole owner of AMap verification and route calls.
+
 ## Platform presets
 
 - China county/city travel: Xiaohongshu and Douyin for firsthand discovery; local government, culture-tourism and venue pages for facts; Toutiao/local media as secondary context; Bilibili only when long-form material adds value.

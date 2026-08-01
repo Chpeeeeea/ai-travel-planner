@@ -17,6 +17,12 @@
 - 工作台会显示完整七阶段状态机、各主题研究证据数、供应商实际调用数与“下一步声明”。
 - 新任务目前会诚实停在 `brief` 阶段并显示“等待 Research Worker”；不会为了演示伪造研究候选、坐标或路线。
 
+### 文档
+
+- 重构仓库 README：以通用产品 Flow 为主线，分开旅行者、Research Worker、地图和数据层，增加能力状态、服务边界、环境变量、仓库结构与下一阶段说明；青田移至参考案例章节。
+- README 新增 Skill 运行位置、历史/文化/风景/美食分 Agent 契约、`vibe-web-research` 与 `content-analysis` 依赖，以及仓库 Skill 与本机安装副本的同步规则。
+- `.env.example` 补齐服务器侧 `AMAP_WEBSERVICE_KEY`，明确与浏览器 JSAPI Key 分开配置。
+
 ### 安全
 
 - 旅行者写入要求同源请求和 ChatGPT 登录身份，任务查询同时校验 `owner_user_id`。
