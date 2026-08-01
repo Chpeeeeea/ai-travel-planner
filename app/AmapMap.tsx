@@ -21,6 +21,7 @@ type Props = {
   color: string;
   revision: number;
   researchArea?: MapView;
+  researchAreaName: string;
   onSelect: (poiId: string) => void;
   onRouteSummary: (summary: RouteSummary) => void;
 };
@@ -83,12 +84,21 @@ function containerIsVisible(container: HTMLDivElement | null) {
 }
 
 function applyResearchViewport(AMap: any, map: any, container: HTMLDivElement | null, researchArea?: MapView) {
-  if (!researchArea?.bounds || !containerIsVisible(container)) return false;
-  const bounds = new AMap.Bounds(
-    [researchArea.bounds.southwest.lng, researchArea.bounds.southwest.lat],
-    [researchArea.bounds.northeast.lng, researchArea.bounds.northeast.lat],
-  );
-  map.setBounds(bounds, false, [56, 56, 56, 56]);
+  if (!researchArea || !containerIsVisible(container)) return false;
+  if (researchArea.bounds) {
+    const bounds = new AMap.Bounds(
+      [researchArea.bounds.southwest.lng, researchArea.bounds.southwest.lat],
+      [researchArea.bounds.northeast.lng, researchArea.bounds.northeast.lat],
+    );
+    map.setBounds(bounds, false, [56, 56, 56, 56]);
+  } else {
+    map.setZoomAndCenter(
+      researchArea.zoom,
+      [researchArea.center.lng, researchArea.center.lat],
+      false,
+      320,
+    );
+  }
   return true;
 }
 
@@ -99,7 +109,7 @@ function zoomToPoi(map: any, poi: Poi) {
   map.setZoomAndCenter(targetZoom, [poi.location.lng, poi.location.lat], false, 320);
 }
 
-export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiId, color, revision, researchArea, onSelect, onRouteSummary }: Props) {
+export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiId, color, revision, researchArea, researchAreaName, onSelect, onRouteSummary }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const baseLayersRef = useRef<{ road: any; satellite: any; roadNet: any } | null>(null);
@@ -125,12 +135,18 @@ export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiI
           center: researchArea ? [researchArea.center.lng, researchArea.center.lat] : [120.286, 28.135],
           viewMode: "2D",
           resizeEnable: true,
+          doubleClickZoom: true,
           layers: [road],
           mapStyle: "amap://styles/whitesmoke",
         });
+        initialViewportAppliedRef.current = false;
+        initialRouteDrawCompletedRef.current = false;
         AMap.plugin("AMap.ToolBar", () => mapRef.current?.addControl(new AMap.ToolBar({ position: "RB" })));
-        setMapReady(true);
-        setRouteState("ready");
+        mapRef.current.on("complete", () => {
+          if (cancelled) return;
+          setMapReady(true);
+          setRouteState("ready");
+        });
       })
       .catch((error) => {
         if (!cancelled) {
@@ -156,19 +172,25 @@ export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiI
     if (!mapReady || !mapRef.current || !window.AMap || !containerRef.current) return;
     const container = containerRef.current;
     const map = mapRef.current;
+    let frame = 0;
     const syncVisibleMap = () => {
       if (!containerIsVisible(container)) return;
-      map.resize();
-      if (!initialViewportAppliedRef.current) {
-        initialViewportAppliedRef.current = applyResearchViewport(window.AMap, map, container, researchArea);
-      }
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (!initialViewportAppliedRef.current) {
+          initialViewportAppliedRef.current = applyResearchViewport(window.AMap, map, container, researchArea);
+        }
+      });
     };
 
     syncVisibleMap();
     if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(syncVisibleMap);
     observer.observe(container);
-    return () => observer.disconnect();
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
   }, [mapReady, researchArea]);
 
   useEffect(() => {
@@ -190,9 +212,11 @@ export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiI
         offset: new AMap.Pixel(-17, -17),
       });
       marker.on("click", () => onSelect(poi.id));
-      marker.on("dblclick", () => {
+      marker.on("dblclick", (event: any) => {
+        event?.originEvent?.stopPropagation?.();
         onSelect(poi.id);
         zoomToPoi(map, poi);
+        setMessage(`已放大 ${poi.name}`);
       });
       return marker;
     });
@@ -206,9 +230,11 @@ export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiI
         offset: new AMap.Pixel(-15, -15),
       });
       marker.on("click", () => onSelect(poi.id));
-      marker.on("dblclick", () => {
+      marker.on("dblclick", (event: any) => {
+        event?.originEvent?.stopPropagation?.();
         onSelect(poi.id);
         zoomToPoi(map, poi);
+        setMessage(`已放大 ${poi.name}`);
       });
       return marker;
     });
@@ -281,10 +307,9 @@ export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiI
 
   function focusResearchArea() {
     if (!mapRef.current || !window.AMap || !containerRef.current) return;
-    mapRef.current.resize();
     if (applyResearchViewport(window.AMap, mapRef.current, containerRef.current, researchArea)) {
       initialViewportAppliedRef.current = true;
-      setMessage("已返回青田县研究区");
+      setMessage(`已返回${researchAreaName}研究区`);
     }
   }
 

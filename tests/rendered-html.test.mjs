@@ -52,6 +52,9 @@ test("restores hidden maps and supports focused marker zoom", async () => {
   assert.match(source, /marker\.on\("dblclick"/);
   assert.match(source, /setZoomAndCenter/);
   assert.match(source, /clientWidth > 1 && container\.clientHeight > 1/);
+  assert.match(source, /mapRef\.current\.on\("complete"/);
+  assert.match(source, /requestAnimationFrame/);
+  assert.doesNotMatch(source, /map\.resize\(\)|mapRef\.current\.resize\(\)/);
 });
 
 test("defines a destination research-area viewport", async () => {

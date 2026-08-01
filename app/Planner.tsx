@@ -257,6 +257,7 @@ export default function Planner({ data }: { data: TripData }) {
             color={color}
             revision={routeRevision}
             researchArea={data.trip.map_view}
+            researchAreaName={data.trip.city}
             onSelect={selectPoi}
             onRouteSummary={updateRouteSummary}
           />

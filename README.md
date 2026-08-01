@@ -38,7 +38,7 @@ AI Travel Planner 是“研究优先、地图收口”的旅行规划平台。�
 - 3 天，美食为主线，同时覆盖历史、文化和风景。
 - 21 个已核验高德 POI，1 个地点仍待消歧。
 - 15 段已核验相邻路线。
-- 支持候选点插入、地点说明、地图双击放大、研究区复位以及道路/遥感图层切换。
+- 支持候选点插入、地点说明、地图点位双击放大、首次进入自动聚焦研究区、研究区复位以及道路/遥感图层切换。
 
 公开产品与案例：[https://qingtian-ai-travel.amandeepchenisekyana.chatgpt.site](https://qingtian-ai-travel.amandeepchenisekyana.chatgpt.site)
 
