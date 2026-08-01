@@ -7,7 +7,7 @@ description: "Research-first travel planning platform workflow that compiles off
 
 把“为什么值得去”的内容研究，与“地点真实、路线可走、结果可携带”的旅行执行系统接起来。
 
-规划运行保留 Brief、研究证据、候选池、已核验地点和最终 `trip.json` 五个阶段。`trip.json` 是日程、卡片、地图、GeoJSON 与导航链接的唯一事实源；上游阶段不得越权写入下游供应商数据。
+平台规划运行保留 `brief → researching → shortlisted → verifying → scheduled → routing → published` 七阶段；离线产物仍保留 Brief、研究证据、候选池、已核验地点和最终 `trip.json`。`trip.json` 是日程、卡片、地图、GeoJSON 与导航链接的唯一事实源；上游阶段不得越权写入下游供应商数据。
 
 ## 核心原则
 
@@ -38,10 +38,10 @@ description: "Research-first travel planning platform workflow that compiles off
 |---|---|
 | 城市/区域 | 必填 |
 | 日期或天数 | 1 天 |
-| 兴趣主题 | 城市代表性文化与用户已表达偏好 |
+| 兴趣主题 | 默认历史遗迹、文化非遗、自然风景、地方美食；平台最多选择 8 项 |
 | 特别想吃 `must_eat` | 无；多个菜品或店铺需求分别记录 |
 | 每日时间窗 | 09:00–18:00 |
-| 强度 | 适中，每天 3–5 个主 POI |
+| 强度 | 适中，每天 4–6 个主 POI |
 | 交通方式 | 同片区步行，跨片区公交/打车 |
 | 住宿锚点 | 未提供则不虚构 |
 | 必去 `must_visit` / 排除 / 已预约 | 无 |
@@ -78,7 +78,7 @@ python scripts/trip_pipeline.py init --city "杭州" --days 2 --output trip.json
 
 ### 2. 并行做多主题研究
 
-多日、跨主题或用户要求深度功课时，读取 `references/research-orchestration.md`，按历史、文化、风景、美食拆分研究线。子 Agent 可用且并发有收益时，每条研究线交给独立子 Agent；简单一日游不强制拆分。
+多日、跨主题或用户要求深度功课时，读取 `references/research-orchestration.md`，按用户选择动态拆分研究线。历史遗迹、文化非遗、自然风景、地方美食只是默认推荐；建筑、博物馆、艺术、在地生活、亲子、夜游、购物、户外、摄影、康养、信仰和影视动漫同样可以成为独立研究线。平台最多选择 8 项、同时运行最多 4 个 Agent；简单一日游不强制拆分。
 
 平台发现统一调用 `vibe-web-research` 的 `search` 模式；官方网页与原始场馆来源负责事实核验。已取得的文章或视频可交给 `content-analysis`。每条研究线必须生成独立 Markdown 文档与结构化候选 POI，不直接编写最终行程，也不调用高德 Key。
 
@@ -90,6 +90,8 @@ python scripts/trip_pipeline.py init --city "杭州" --days 2 --output trip.json
 - 预约、闭馆日、季节性与时段风险。
 
 此阶段的地点只能标为 `candidate`，不能自行填写高德 POI ID 和坐标。把各研究线的结构化证据汇总为 `research-evidence.json`，再运行：
+
+平台模式下，主 Agent 先通过 `/api/planning-runs/claim` 取得有过期时间的运行租约，再并行派发研究线。每条研究线必须独立记录 `queued/running/succeeded/failed`、尝试次数、证据数、Markdown 和错误；Worker 崩溃后新实例只重跑未成功研究线。租约 Token、执行器令牌和高德密钥不得交给研究子 Agent。
 
 ```powershell
 python scripts/planning_pipeline.py compile --brief brief.json --evidence research-evidence.json --min 20 --max 40 --output candidate-pool.json
@@ -224,6 +226,6 @@ python scripts/render_trip.py --input trip.json --output output
 - 每季度核对高德 MCP 包、工具名、POI/路径 API 和 JSAPI 安全策略。
 - 所有外部响应经适配层归一化，业务层不得依赖供应商原始字段。
 - 新 provider 通过相同 `PlaceProvider` / `RouteProvider` 契约接入。
-- 将平台运行按 `brief -> researched -> shortlisted -> verifying -> scheduled -> routed -> published` 持久化；重跑从最近完成阶段继续，不能无条件重新消耗供应商额度。
+- 将平台运行按 `brief -> researching -> shortlisted -> verifying -> scheduled -> routing -> published` 持久化；重跑从最近完成阶段继续，不能无条件重新消耗供应商额度。
 - 发现失败案例时，先补 fixture 和校验规则，再修改提示词。
 - TREK 仅作为架构参照；不要复制其 AGPL-3.0 代码进入本 Skill。

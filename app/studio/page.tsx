@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { defaultTravelTopicLabels } from "../../platform/runtime/travel-topics.mjs";
 import { requireChatGPTUser } from "../chatgpt-auth";
 import TravelStudio from "./TravelStudio";
 
@@ -15,9 +16,9 @@ function first(value: SearchValue, fallback = "") {
   return Array.isArray(value) ? value[0] ?? fallback : value ?? fallback;
 }
 
-function list(value: SearchValue, fallback: string[] = []) {
+function list(value: SearchValue, fallback: string[] = [], limit = 12) {
   const raw = first(value);
-  return raw ? raw.split(",").map((item) => item.trim()).filter(Boolean).slice(0, 12) : fallback;
+  return raw ? raw.split(",").map((item) => item.trim()).filter(Boolean).slice(0, limit) : fallback;
 }
 
 export default async function StudioPage({ searchParams }: { searchParams: Promise<Record<string, SearchValue>> }) {
@@ -35,7 +36,7 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
     initialBrief={{
       destination: first(params.destination, "青田县"),
       days: Math.max(1, Math.min(7, Number(first(params.days, "3")) || 3)),
-      interests: list(params.interests, ["历史", "文化", "风景", "美食"]),
+      interests: list(params.interests, defaultTravelTopicLabels(), 8),
       mustEat: list(params.must_eat),
       mustVisit: list(params.must_visit),
     }}

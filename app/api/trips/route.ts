@@ -46,7 +46,7 @@ export async function GET(request: Request) {
     const runId = new URL(request.url).searchParams.get("run_id")?.trim() ?? "";
     const {
       assignments, candidates, getDb, itineraryDays, planningBriefs, planningRunEvents,
-      planningRuns, providerMatches, researchEvidence, routeSegments,
+      planningRuns, providerMatches, researchEvidence, researchLaneJobs, routeSegments,
     } = await dataLayer();
     const db = getDb();
     if (!runId) {
@@ -60,9 +60,10 @@ export async function GET(request: Request) {
       .where(and(eq(planningRuns.id, runId), eq(planningRuns.ownerUserId, user.userId)))
       .limit(1);
     if (!run) return Response.json({ error: "Travel plan not found" }, { status: 404 });
-    const [briefRow, evidenceRows, candidateRows, matchRows, dayRows, events] = await Promise.all([
+    const [briefRow, evidenceRows, laneJobs, candidateRows, matchRows, dayRows, events] = await Promise.all([
       db.select().from(planningBriefs).where(eq(planningBriefs.runId, runId)).limit(1).then((items) => items[0]),
       db.select().from(researchEvidence).where(eq(researchEvidence.runId, runId)),
+      db.select().from(researchLaneJobs).where(eq(researchLaneJobs.runId, runId)).orderBy(asc(researchLaneJobs.lane)),
       db.select().from(candidates).where(eq(candidates.runId, runId)),
       db.select().from(providerMatches).where(eq(providerMatches.runId, runId)),
       db.select().from(itineraryDays).where(eq(itineraryDays.runId, runId)).orderBy(asc(itineraryDays.dayNumber)),
@@ -70,13 +71,22 @@ export async function GET(request: Request) {
     ]);
     const assignmentRows = (await Promise.all(dayRows.map((day) => db.select().from(assignments).where(eq(assignments.dayId, day.id))))).flat();
     const segmentRows = (await Promise.all(dayRows.map((day) => db.select().from(routeSegments).where(eq(routeSegments.dayId, day.id))))).flat();
-    const evidenceByLane = Object.fromEntries(["history", "culture", "scenery", "food"].map((lane) => [lane, evidenceRows.filter((item) => item.lane === lane).length]));
+    const researchLanes = [...new Set([...laneJobs.map((job) => job.lane), ...evidenceRows.map((item) => item.lane)])];
+    const evidenceByLane = Object.fromEntries(researchLanes.map((lane) => [lane, evidenceRows.filter((item) => item.lane === lane).length]));
     return Response.json({
       run: publicRun(run),
       brief: briefRow ? JSON.parse(briefRow.briefJson) : null,
       progress: {
         evidence_total: evidenceRows.length,
         evidence_by_lane: evidenceByLane,
+        research_lanes: laneJobs.map((job) => ({
+          lane: job.lane,
+          topic_label: job.topicLabel,
+          status: job.status,
+          attempt_count: job.attemptCount,
+          evidence_count: job.evidenceCount,
+          last_error: job.lastError,
+        })),
         shortlisted: candidateRows.filter((item) => item.shortlistRank !== null).length,
         verified: candidateRows.filter((item) => item.verificationStatus === "verified").length,
         needs_confirmation: candidateRows.filter((item) => item.verificationStatus === "needs_confirmation").length,
@@ -86,6 +96,12 @@ export async function GET(request: Request) {
         verified_routes: segmentRows.filter((item) => item.status === "verified").length,
       },
       provider_matches: matchRows.length,
+      worker: {
+        attempt: run.workerAttempt,
+        active: Boolean(run.leaseExpiresAt && run.leaseExpiresAt > new Date().toISOString()),
+        version: run.workerVersion,
+        lease_expires_at: run.leaseExpiresAt,
+      },
       events: events.map((event) => ({
         id: event.id,
         from_stage: event.fromStage,

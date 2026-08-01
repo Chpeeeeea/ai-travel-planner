@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { DEFAULT_TRAVEL_TOPIC_IDS, MAX_SELECTED_TRAVEL_TOPICS, TRAVEL_TOPICS } from "../platform/runtime/travel-topics.mjs";
 import styles from "./platform.module.css";
 
-const themes = ["历史", "文化", "风景", "美食"];
+const themeCatalog = TRAVEL_TOPICS as ReadonlyArray<{ id: string; label: string; scope: string }>;
+const defaultThemes = themeCatalog.filter((theme) => DEFAULT_TRAVEL_TOPIC_IDS.includes(theme.id)).map((theme) => theme.label);
 const sources = [
   ["官方文旅", "确认事实、开放规则和目的地脉络"],
   ["小红书", "发现真实体验、店铺和现场摩擦"],
   ["OSM", "补充名称、区域与开放地理线索"],
-  ["多主题研究", "并行整理历史、文化、风景与美食"],
+  ["多主题研究", "按用户选择动态派发专题研究 Agent"],
 ];
 const stages = [
   ["01", "旅行 Brief", "目的地、天数、偏好和节奏"],
@@ -28,7 +30,7 @@ function parseCustomNeeds(value: string) {
 export default function PlatformHome() {
   const [destination, setDestination] = useState("青田县");
   const [days, setDays] = useState(3);
-  const [selectedThemes, setSelectedThemes] = useState(["历史", "文化", "风景", "美食"]);
+  const [selectedThemes, setSelectedThemes] = useState(defaultThemes);
   const [mustEat, setMustEat] = useState("");
   const [mustVisit, setMustVisit] = useState("");
   const estimates = useMemo(() => {
@@ -44,7 +46,7 @@ export default function PlatformHome() {
   function toggleTheme(theme: string) {
     setSelectedThemes((current) => current.includes(theme)
       ? current.filter((item) => item !== theme)
-      : [...current, theme]);
+      : current.length < MAX_SELECTED_TRAVEL_TOPICS ? [...current, theme] : current);
   }
 
   function openStudio() {
@@ -106,7 +108,7 @@ export default function PlatformHome() {
           <label>旅行天数<select value={days} onChange={(event) => setDays(Number(event.target.value))}>
             {[1, 2, 3, 4, 5, 6, 7].map((value) => <option key={value} value={value}>{value} 天</option>)}
           </select></label>
-          <fieldset><legend>兴趣重点</legend><div className={styles.themeGrid}>{themes.map((theme) => <button type="button" key={theme} className={selectedThemes.includes(theme) ? styles.selected : ""} onClick={() => toggleTheme(theme)} aria-pressed={selectedThemes.includes(theme)}>{theme}</button>)}</div></fieldset>
+          <fieldset><legend>兴趣重点 <span>已选 {selectedThemes.length}/{MAX_SELECTED_TRAVEL_TOPICS}</span></legend><div className={styles.themeGrid}>{themeCatalog.map((theme) => <button type="button" key={theme.id} title={theme.scope} className={selectedThemes.includes(theme.label) ? styles.selected : ""} onClick={() => toggleTheme(theme.label)} aria-pressed={selectedThemes.includes(theme.label)}>{theme.label}</button>)}</div></fieldset>
           <fieldset className={styles.customNeeds}>
             <legend>这次旅行最在意什么 <span>可选，多个内容用逗号分隔</span></legend>
             <div className={styles.customNeedGrid}>
