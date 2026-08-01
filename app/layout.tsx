@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "青田三日 · 山水侨乡食游",
     description: "19 个真实高德 POI、15 段已核验路线，由四主题研究共同编译。",
-    images: [{ url: "/og.png", width: 1731, height: 909 }],
+    images: [{ url: "/og-v2.png", width: 1728, height: 910 }],
     locale: "zh_CN",
     type: "website",
   },

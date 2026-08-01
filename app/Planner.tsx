@@ -109,6 +109,7 @@ export default function Planner({ data }: { data: TripData }) {
         </div>
         <div className="header-actions">
           <span className="sync-state"><i /> 已同步 · {data.provenance.updated_at.slice(5, 16).replace("T", " ")}</span>
+          <a className="ghost-button portfolio-link" href="/case-study">项目作品集</a>
           <button className="ghost-button" onClick={downloadTrip}>导出 trip.json</button>
         </div>
       </header>
