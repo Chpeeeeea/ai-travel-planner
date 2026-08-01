@@ -42,6 +42,9 @@ export type Segment = {
   distance_m: number | null;
   duration_s: number | null;
   status: string;
+  geometry?: number[][];
+  provider?: string | null;
+  verified_at?: string | null;
 };
 
 export type Day = {
@@ -54,7 +57,9 @@ export type Day = {
 };
 
 export type TripData = {
-  trip: { title: string; city: string; assumptions: string[]; map_view?: MapView };
+  schema_version?: string;
+  planning_run?: { id: string; current_stage: string; status: string; provider_poi_calls: number; provider_route_calls: number };
+  trip: { id?: string; title: string; city: string; assumptions: string[]; coordinate_system?: string; map_view?: MapView | null };
   pois: Poi[];
   days: Day[];
   quality: {
@@ -63,6 +68,7 @@ export type TripData = {
     unverified_poi_count: number;
     verified_poi_count?: number;
     verified_route_count?: number;
+    pending_route_count?: number;
   };
-  provenance: { research_documents?: string[]; updated_at: string };
+  provenance: { research_documents?: string[]; research_source_count?: number; research_source_kinds?: string[]; updated_at: string };
 };
