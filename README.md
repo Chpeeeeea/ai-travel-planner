@@ -21,6 +21,8 @@ AI Travel Planner 是“研究优先、地图收口”的旅行规划平台。�
 - `/`：平台产品入口，可生成目的地研究 Brief，并预估候选核验与路线调用量。
 - `/cases/qingtian`：青田三日交互案例，包含卡片、候选地点、高德道路与遥感图层。
 - `platform/pipeline.py`：可执行的离线管线，负责候选合并评分、高德核验清单、每日编排和相邻路线清单。
+- D1 `PlanningRun`：保存 Brief、研究证据、候选、高德匹配、日程、路线、阶段事件和供应商调用计数。
+- `/api/planning-runs`：受服务端令牌保护的任务创建、查询和阶段推进接口；不向公开页面暴露写入凭据。
 - `cases/qingtian/trip.json`：青田案例的最终行程事实源。
 - `skill/ai-travel-planner`：与产品管线一致的 Codex Skill 源码。
 

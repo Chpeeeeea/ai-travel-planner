@@ -90,3 +90,19 @@ test("downloads the Markdown summary as UTF-8 with BOM", async () => {
   const bytes = new Uint8Array(await response.arrayBuffer());
   assert.deepEqual([...bytes.slice(0, 3)], [0xef, 0xbb, 0xbf]);
 });
+
+test("defines durable PlanningRun stages and protected API access", async () => {
+  const schema = await readFile(new URL("../db/schema.ts", import.meta.url), "utf8");
+  const api = await readFile(new URL("../app/api/planning-runs/route.ts", import.meta.url), "utf8");
+  const hosting = JSON.parse(await readFile(new URL("../.openai/hosting.json", import.meta.url), "utf8"));
+  const migration = await readFile(new URL("../drizzle/0000_careless_enchantress.sql", import.meta.url), "utf8");
+  for (const table of ["planning_runs", "planning_briefs", "research_evidence", "candidates", "provider_matches", "itinerary_days", "assignments", "route_segments", "planning_run_events"]) {
+    assert.match(schema, new RegExp(`"${table}"`));
+    assert.match(migration, new RegExp("CREATE TABLE `" + table + "`"));
+  }
+  assert.equal(hosting.d1, "DB");
+  assert.match(api, /PLANNING_RUN_WRITE_TOKEN/);
+  assert.match(api, /Invalid stage transition/);
+  assert.match(api, /providerPoiCalls/);
+  assert.match(api, /providerRouteCalls/);
+});

@@ -7,6 +7,7 @@ interface Env {
   DB: D1Database;
   AMAP_JSAPI_KEY?: string;
   AMAP_SECURITY_JS_CODE?: string;
+  PLANNING_RUN_WRITE_TOKEN?: string;
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
