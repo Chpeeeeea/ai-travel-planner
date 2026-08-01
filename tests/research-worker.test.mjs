@@ -55,6 +55,19 @@ test("defines durable run leases and per-lane retry state", async () => {
   assert.equal(outputSchema.additionalProperties, false);
 });
 
+test("ships a low-memory service profile and a non-claiming worker check", async () => {
+  const worker = await readFile(new URL("../research-worker/index.mjs", import.meta.url), "utf8");
+  const service = await readFile(new URL("../research-worker/ai-travel-planner-worker.service", import.meta.url), "utf8");
+  const environment = await readFile(new URL("../research-worker/worker.env.example", import.meta.url), "utf8");
+  assert.match(worker, /process\.argv\.includes\("--check"\)/);
+  assert.match(worker, /api\(config, "\/api\/planning-runs"\)/);
+  assert.match(worker, /isolatedChildEnvironment/);
+  assert.match(service, /ExecStartPre=.*--check/);
+  assert.match(service, /MemoryMax=1800M/);
+  assert.match(environment, /RESEARCH_WORKER_CONCURRENCY=1/);
+  assert.doesNotMatch(service, /PLANNING_RUN_WRITE_TOKEN=/);
+});
+
 test("runs user-selected research lanes with bounded concurrency before provider stages", async () => {
   const calls = [];
   let verificationBatch = 0;

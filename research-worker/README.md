@@ -55,6 +55,12 @@ npm.cmd run worker:research -- --once
 npm.cmd run worker:research -- --watch
 ```
 
+只检查 Codex CLI、平台令牌和受保护 API，不领取任务：
+
+```powershell
+npm.cmd run worker:research -- --check
+```
+
 日志输出为 JSON Lines，不打印租约 Token、平台 Token 或高德密钥。
 
 ## 部署边界
@@ -62,5 +68,30 @@ npm.cmd run worker:research -- --watch
 Worker 不应与公开网页运行在同一个浏览器进程，也不应把 Codex 认证或平台写入令牌交给前端。可选部署方式包括独立云主机、容器服务或受信的常驻工作站；2 核 2G 建议设置并发 1–2，4G 以上内存再使用默认并发 4。选择 8 个主题不等于同时运行 8 个进程。
 
 公共 Sites Demo 只有在这个进程实际在线且密钥配置完成后，才会自动越过 `brief/researching`。仓库包含完整执行器，但不会伪装成已经部署的后台服务。
+
+## 2 核 2G 阿里云部署
+
+仓库提供 [`worker.env.example`](worker.env.example) 和 [`ai-travel-planner-worker.service`](ai-travel-planner-worker.service)。建议使用 Ubuntu 22.04/24.04、Node.js 22、10 GB 以上可用磁盘，并把并发固定为 `1`；2 GB 内存不适合同时运行 4 个 Codex 研究进程。
+
+部署前需要准备：
+
+1. 一台可通过 SSH 登录的阿里云 ECS；安全组只需开放 SSH，Worker 主动访问 Sites，不需要额外公开端口或域名。
+2. Linux 服务用户 `ai-travel`，仓库放在 `/opt/ai-travel-planner`，服务用户能读取仓库和自己的 Codex 配置。
+3. Node.js 22、npm 10、Git 和 Codex CLI；在服务用户身份下完成 Codex 登录，或用独立的 `CODEX_API_KEY` 环境文件。
+4. 从仓库固定提交使用 `.agents/skills/ai-travel-planner`，并在同一服务用户环境安装 `vibe-web-research`。不要把本机临时 Skill 副本手工粘贴成无版本依赖。
+5. 在 `/etc/ai-travel-planner/worker.env` 写入与 Sites 相同的 `PLANNING_RUN_WRITE_TOKEN`，权限设为 root 所有、`0600`；不要把令牌写进仓库、命令历史或 systemd unit。
+6. 先运行 `npm run worker:research -- --check`，再安装并启动 systemd 服务；日志通过 `journalctl -u ai-travel-planner-worker` 查看。
+
+```bash
+sudo install -d -o ai-travel -g ai-travel /opt/ai-travel-planner
+sudo install -d -m 700 /etc/ai-travel-planner
+sudo install -m 600 research-worker/worker.env.example /etc/ai-travel-planner/worker.env
+sudo install -m 644 research-worker/ai-travel-planner-worker.service /etc/systemd/system/ai-travel-planner-worker.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now ai-travel-planner-worker
+sudo systemctl status ai-travel-planner-worker --no-pager
+```
+
+上述命令不会代替仓库克隆、`npm ci`、Codex 登录和密钥填写。完整社交平台检索还需要合法的登录态或 Browser Bridge；纯 headless ECS 默认只能保证官方网页、开放 Web 与 OSM 覆盖，遇到小红书登录或验证码时必须记录为覆盖不足，不能绕过平台限制。
 
 官方参考：[`codex exec` 非交互模式](https://developers.openai.com/codex/noninteractive)、[Codex Skills](https://developers.openai.com/codex/skills)。
