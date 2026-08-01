@@ -194,7 +194,7 @@ export default function TravelStudio({ user, initialBrief, initialRunId }: {
               <article><span>行程与道路</span><p><b>已排天数</b><i>{snapshot.progress.scheduled_days}</i></p><p><b>已选地点</b><i>{snapshot.progress.scheduled_places}</i></p><p><b>真实道路</b><i>{snapshot.progress.verified_routes}/{snapshot.progress.route_segments}</i></p></article>
             </div>
             <section className={styles.events}><h3>运行记录</h3>{snapshot.events.map((event) => <article key={event.id}><i /><div><strong>{event.message}</strong><span>{dateText(event.created_at)} · POI {event.poi_calls} / Route {event.route_calls}</span></div></article>)}</section>
-            {snapshot.run.current_stage === "published" && <Link className={styles.resultLink} href={`/api/trips/trip?run_id=${encodeURIComponent(snapshot.run.id)}`}>查看统一行程数据 →</Link>}
+            {snapshot.run.current_stage === "published" && <div className="studio-result-actions"><Link className={styles.resultLink} href={`/trip?run_id=${encodeURIComponent(snapshot.run.id)}`}>打开卡片地图 →</Link><a href={`/api/trips/trip?run_id=${encodeURIComponent(snapshot.run.id)}`}>查看技术数据</a></div>}
             {error && <p className={styles.error} role="alert">{error}</p>}
           </section>
         ) : <section className={styles.loading} aria-live="polite">正在读取任务进度…</section>}
