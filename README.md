@@ -284,6 +284,10 @@ npm.cmd run worker:research -- --watch
 
 Worker 使用 `codex exec --output-schema` 约束每条研究线的结果。Codex 子进程只做只读研究，且不会继承平台写入令牌或高德密钥。
 
+仓库已经提供 2 核 2G 阿里云的低并发环境模板、systemd 服务和不领取任务的 `--check` 上线检查。ECS 只需主动访问 Sites，因此没有域名也可以运行 Worker，安全组无需为它新增 Web 端口。完整清单见 [research-worker/README.md#2-核-2g-阿里云部署](research-worker/README.md#2-核-2g-阿里云部署)。
+
+需要特别区分两种检索覆盖：普通 headless ECS 可以稳定承担官方网页、开放 Web 与 OSM 研究；小红书等登录平台还需要服务用户可用的合法登录态或 Browser Bridge。没有这项能力时 Worker 必须记录“覆盖不足”，不能抓取绕过，也不能把未核验内容冒充来源。
+
 ## 验证
 
 ```bash

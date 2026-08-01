@@ -8,7 +8,8 @@ import { topicsForInterests, topicFor } from "../platform/runtime/travel-topics.
 const workerDirectory = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = resolve(workerDirectory, "..");
 const outputSchema = join(workerDirectory, "lane-output.schema.json");
-const workerVersion = "0.10.0";
+const workerVersion = "0.11.1";
+const childSecretNames = ["PLANNER_BASE_URL", "PLANNING_RUN_WRITE_TOKEN", "AMAP_WEBSERVICE_KEY", "AMAP_SECURITY_JS_CODE", "AMAP_JSAPI_KEY"];
 
 class WorkerError extends Error {
   constructor(message, { retryable = true, status = 0, detail = null } = {}) {
@@ -43,6 +44,47 @@ function configFromEnvironment() {
 
 function log(event, detail = {}) {
   process.stdout.write(`${JSON.stringify({ at: new Date().toISOString(), event, ...detail })}\n`);
+}
+
+function isolatedChildEnvironment() {
+  const childEnvironment = { ...process.env };
+  for (const secret of childSecretNames) delete childEnvironment[secret];
+  return childEnvironment;
+}
+
+async function checkCodex(config) {
+  const version = await new Promise((resolvePromise, rejectPromise) => {
+    const child = spawn(config.codexExecutable, ["--version"], {
+      cwd: repositoryRoot,
+      env: isolatedChildEnvironment(),
+      stdio: ["ignore", "pipe", "pipe"],
+      windowsHide: true,
+    });
+    let output = "";
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => { output = `${output}${chunk}`.slice(-500); });
+    child.stderr.on("data", (chunk) => { output = `${output}${chunk}`.slice(-500); });
+    child.once("error", (error) => rejectPromise(new WorkerError(`Cannot start Codex executable: ${error.message}`, { retryable: false })));
+    child.once("exit", (code) => code === 0
+      ? resolvePromise(output.trim())
+      : rejectPromise(new WorkerError(`Codex version check exited with code ${code}`, { retryable: false })));
+  });
+  return String(version);
+}
+
+async function healthCheck(config) {
+  const [codexVersion, planningRuns] = await Promise.all([
+    checkCodex(config),
+    api(config, "/api/planning-runs"),
+  ]);
+  log("worker.check_succeeded", {
+    worker_id: config.workerId,
+    version: workerVersion,
+    codex: codexVersion,
+    planner_api: "reachable",
+    recent_runs: Array.isArray(planningRuns?.runs) ? planningRuns.runs.length : 0,
+  });
 }
 
 async function api(config, path, { method = "GET", body } = {}) {
@@ -110,10 +152,7 @@ async function runCodex(config, brief, lane, topicLabel, scope) {
     "--output-last-message", outputPath,
     lanePrompt(brief, lane, topicLabel, scope),
   ];
-  const childEnvironment = { ...process.env };
-  for (const secret of ["PLANNER_BASE_URL", "PLANNING_RUN_WRITE_TOKEN", "AMAP_WEBSERVICE_KEY", "AMAP_SECURITY_JS_CODE", "AMAP_JSAPI_KEY"]) {
-    delete childEnvironment[secret];
-  }
+  const childEnvironment = isolatedChildEnvironment();
   try {
     await new Promise((resolvePromise, rejectPromise) => {
       const child = spawn(config.codexExecutable, args, {
@@ -302,6 +341,10 @@ async function processOne(config) {
 
 async function main() {
   const config = configFromEnvironment();
+  if (process.argv.includes("--check")) {
+    await healthCheck(config);
+    return;
+  }
   const watch = process.argv.includes("--watch");
   log("worker.started", { worker_id: config.workerId, version: workerVersion, mode: watch ? "watch" : "once" });
   do {

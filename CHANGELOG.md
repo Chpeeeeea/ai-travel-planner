@@ -2,6 +2,20 @@
 
 本文件记录 AI Travel Planner 的阶段性产品更新。每个阶段完成后都必须先更新本文件，再提交并上传 GitHub。
 
+## [0.11.1] - 2026-08-01
+
+### 部署准备
+
+- 新增 2 核 2G 阿里云 Worker 环境模板与 systemd 服务；默认研究并发降为 1，设置进程重启、内存高水位和 1.8 GB 硬上限，避免低配主机同时拉起多个 Codex 进程。
+- 新增 `worker:research -- --check`：只检查 Codex CLI、平台令牌和受保护 API，不领取或修改旅行任务，可作为 systemd 启动前检查。
+- README 与 Worker 手册补齐 ECS、Node 22、Codex 登录、仓库 Skill、`vibe-web-research`、令牌文件权限、日志和安全组清单；无域名的 ECS 也可作为主动轮询 Worker。
+- 明确 headless ECS 默认只保证官方网页、开放 Web 与 OSM 覆盖；小红书等登录平台需要合法登录态或 Browser Bridge，不允许绕过登录和验证码。
+
+### 验证
+
+- 新增低内存部署配置、启动前检查、密钥隔离和 systemd 不内嵌令牌的回归测试。
+- lint、TypeScript 检查与 Research Worker 单元测试通过；完整产品构建与管线测试在提交前再次执行。
+
 ## [0.11.0] - 2026-08-01
 
 ### 新增
