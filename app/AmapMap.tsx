@@ -12,6 +12,7 @@ declare global {
 }
 
 type RouteSummary = { distance: number; duration: number; complete: boolean };
+type MapLayerMode = "road" | "satellite";
 type Props = {
   dayPois: Poi[];
   candidatePois: Poi[];
@@ -79,8 +80,10 @@ function searchRoute(AMap: any, mode: string, from: Poi, to: Poi) {
 export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiId, color, revision, onSelect, onRouteSummary }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
+  const baseLayersRef = useRef<{ road: any; satellite: any; roadNet: any } | null>(null);
   const overlaysRef = useRef<any[]>([]);
   const [mapReady, setMapReady] = useState(false);
+  const [layerMode, setLayerMode] = useState<MapLayerMode>("road");
   const [routeState, setRouteState] = useState<"loading" | "ready" | "drawing" | "error">("loading");
   const [message, setMessage] = useState("正在加载真实道路地图…");
 
@@ -89,10 +92,15 @@ export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiI
     loadAmap()
       .then((AMap) => {
         if (cancelled || !containerRef.current) return;
+        const road = AMap.createDefaultLayer({ zooms: [3, 20] });
+        const satellite = new AMap.TileLayer.Satellite({ zooms: [3, 20] });
+        const roadNet = new AMap.TileLayer.RoadNet({ zooms: [3, 20] });
+        baseLayersRef.current = { road, satellite, roadNet };
         mapRef.current = new AMap.Map(containerRef.current, {
           zoom: 11,
           center: [120.286, 28.135],
           viewMode: "2D",
+          layers: [road],
           mapStyle: "amap://styles/whitesmoke",
         });
         AMap.plugin("AMap.ToolBar", () => mapRef.current?.addControl(new AMap.ToolBar({ position: "RB" })));
@@ -109,8 +117,15 @@ export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiI
       cancelled = true;
       mapRef.current?.destroy();
       mapRef.current = null;
+      baseLayersRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !baseLayersRef.current) return;
+    const { road, satellite, roadNet } = baseLayersRef.current;
+    mapRef.current.setLayers(layerMode === "satellite" ? [satellite, roadNet] : [road]);
+  }, [layerMode, mapReady]);
 
   useEffect(() => {
     if (!mapReady || !mapRef.current || !window.AMap) return;
@@ -208,7 +223,13 @@ export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiI
     <div className="amap-shell">
       <div ref={containerRef} className="amap-container" aria-label="高德真实道路地图" />
       <div className={`map-service-state ${routeState}`}><i />{message}</div>
-      <div className="candidate-map-legend"><span>● 行程</span><span>＋ 可加入候选点</span></div>
+      <div className="map-display-controls">
+        <div className="map-layer-switch" role="group" aria-label="切换地图图层">
+          <button className={layerMode === "road" ? "active" : ""} onClick={() => setLayerMode("road")} aria-pressed={layerMode === "road"}>道路</button>
+          <button className={layerMode === "satellite" ? "active" : ""} onClick={() => setLayerMode("satellite")} aria-pressed={layerMode === "satellite"}>遥感</button>
+        </div>
+        <div className="candidate-map-legend"><span>● 行程</span><span>＋ 可加入候选点</span></div>
+      </div>
     </div>
   );
 }

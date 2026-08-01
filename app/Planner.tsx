@@ -171,7 +171,7 @@ export default function Planner({ data }: { data: TripData }) {
 
       <section className="summary-strip" aria-label="行程概览">
         <div><strong>3</strong><span>天行程</span></div>
-        <div><strong>{data.quality.verified_poi_count ?? 19}</strong><span>精选地点</span></div>
+        <div><strong>{data.quality.verified_poi_count ?? 21}</strong><span>精选地点</span></div>
         <div><strong>4</strong><span>兴趣主题</span></div>
         <div><strong>实时</strong><span>道路刷新</span></div>
         <p>在卡片或地图中选择地点，加入、移除或调整顺序，路线会重新计算。</p>

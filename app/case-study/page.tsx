@@ -49,7 +49,7 @@ export default function CaseStudy() {
 
       <section className={styles.metrics} aria-label="项目结果">
         <div><strong>4</strong><span>主题研究线</span></div>
-        <div><strong>19</strong><span>高德已核验 POI</span></div>
+        <div><strong>21</strong><span>高德已核验 POI</span></div>
         <div><strong>15</strong><span>真实距离 / 耗时路线</span></div>
         <div><strong>3 天</strong><span>可执行旅行安排</span></div>
       </section>

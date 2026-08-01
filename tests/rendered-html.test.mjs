@@ -21,7 +21,9 @@ test("server-renders the Qingtian travel planner", async () => {
   const html = await response.text();
   assert.match(html, /青田三日/);
   assert.match(html, /AI TRAVEL PLANNER/);
-  assert.match(html, /19/);
+  assert.match(html, /21/);
+  assert.match(html, /道路/);
+  assert.match(html, /遥感/);
   assert.doesNotMatch(html, /Your site is taking shape|react-loading-skeleton/);
 });
 
@@ -30,7 +32,7 @@ test("server-renders the product case study without developer-facing resume copy
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /真正走得通的旅行/);
-  assert.match(html, /19/);
+  assert.match(html, /21/);
   assert.match(html, /og-v2\.png/);
   assert.match(html, /候选点上图/);
   assert.doesNotMatch(html, /RESUME COPY|TREK|trip\.json|GeoJSON|旧版 Skill/);

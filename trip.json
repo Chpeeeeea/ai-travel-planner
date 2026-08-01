@@ -159,16 +159,16 @@
       "verification": {"status": "needs_confirmation", "verified_at": null, "query": "青田华侨历史陈列馆", "match_confidence": null, "source_url": null}
     },
     {
-      "id": "zhang-naiqi-hall", "provider": "research", "provider_poi_id": null, "name": "章乃器生平事迹陈列馆", "aliases": [], "address": "待高德核验", "adcode": "", "typecode": "140000", "location": null,
+      "id": "zhang-naiqi-hall", "provider": "amap", "provider_poi_id": "B0IAOC0HQC", "name": "章乃器生平事迹陈列馆", "aliases": ["东源镇东源村章乃器生平事迹陈列馆"], "address": "青田县东源镇东源村", "adcode": "331121", "typecode": "110204", "location": {"lng": 120.231506, "lat": 28.313142, "coord_system": "GCJ-02"},
       "business": {"rating": null, "cost": null, "open_hours": null}, "photos": [], "themes": ["历史"],
       "content": {"why_visit": "提供青田近现代人物史的一条完整支线。", "watch_for": ["人物生平", "近现代社会网络"], "stay_minutes": 75},
-      "verification": {"status": "candidate", "verified_at": null, "query": "章乃器生平事迹陈列馆", "match_confidence": null, "source_url": null}
+      "verification": {"status": "verified", "verified_at": "2026-08-01T13:53:23+08:00", "query": "章乃器生平事迹陈列馆", "match_confidence": 0.92, "source_url": "amap://poi/B0IAOC0HQC"}
     },
     {
-      "id": "rice-fish-museum", "provider": "research", "provider_poi_id": null, "name": "青田稻鱼共生系统博物馆", "aliases": [], "address": "龙现村一带，待高德核验", "adcode": "", "typecode": "140000", "location": null,
+      "id": "rice-fish-museum", "provider": "amap", "provider_poi_id": "B0IDULI8J1", "name": "青田稻鱼共生系统博物馆", "aliases": [], "address": "青田县方山乡永安路309号", "adcode": "331121", "typecode": "140100", "location": {"lng": 120.31238, "lat": 28.022635, "coord_system": "GCJ-02"},
       "business": {"rating": null, "cost": null, "open_hours": null}, "photos": [], "themes": ["文化", "美食"],
       "content": {"why_visit": "把田鱼午餐前置为农业文化体验，而不只是一顿饭。", "watch_for": ["稻鱼共生机制", "农遗景观", "季节变化"], "stay_minutes": 75},
-      "verification": {"status": "candidate", "verified_at": null, "query": "青田稻鱼共生系统博物馆", "match_confidence": null, "source_url": null}
+      "verification": {"status": "verified", "verified_at": "2026-08-01T13:53:23+08:00", "query": "青田稻鱼共生系统博物馆", "match_confidence": 1.0, "source_url": "amap://poi/B0IDULI8J1"}
     }
   ],
   "days": [
@@ -248,11 +248,11 @@
       "田鱼村农庄缺稳定营业时间，必须提前电话确认",
       "夜游太鹤湖显示季节性营业信息，只作为可选项",
       "千峡湖保留为自驾整日备选；建设、游船、山路与补给条件需临行核查",
-      "3 个研究候选仍待高德消歧，未进入正式日程"
+      "青田华侨历史陈列馆仍待高德消歧，未进入正式日程"
     ],
-    "unverified_poi_count": 3,
+    "unverified_poi_count": 1,
     "pending_route_count": 0,
-    "verified_poi_count": 19,
+    "verified_poi_count": 21,
     "verified_route_count": 15
   }
 }
