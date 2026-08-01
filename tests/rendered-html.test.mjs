@@ -53,6 +53,13 @@ test("sign-in gates dynamic traveler card maps", async () => {
   assert.match(response.headers.get("location") ?? "", /return_to=/);
 });
 
+test("sign-in gates traveler POI disambiguation", async () => {
+  const response = await render("/disambiguation?run_id=run-123");
+  assert.ok([302, 303, 307, 308].includes(response.status));
+  assert.match(response.headers.get("location") ?? "", /\/signin-with-chatgpt\?/);
+  assert.match(response.headers.get("location") ?? "", /return_to=/);
+});
+
 test("server-renders the signed-in traveler research studio", async () => {
   const response = await render("/studio?destination=青田县&days=3&must_eat=田鱼", {
     "oai-authenticated-user-id": "test-user",
@@ -171,6 +178,9 @@ test("exposes an identity-scoped traveler API without browser secrets", async ()
   const tripPage = await readFile(new URL("../app/trip/page.tsx", import.meta.url), "utf8");
   const itineraryApi = await readFile(new URL("../app/api/trips/itinerary/route.ts", import.meta.url), "utf8");
   const exportApi = await readFile(new URL("../app/api/trips/export/route.ts", import.meta.url), "utf8");
+  const disambiguationApi = await readFile(new URL("../app/api/trips/disambiguation/route.ts", import.meta.url), "utf8");
+  const disambiguationPage = await readFile(new URL("../app/disambiguation/page.tsx", import.meta.url), "utf8");
+  const disambiguationPanel = await readFile(new URL("../app/disambiguation/DisambiguationPanel.tsx", import.meta.url), "utf8");
   const tripAssembler = await readFile(new URL("../platform/server/trip-assembler.ts", import.meta.url), "utf8");
   const planner = await readFile(new URL("../app/Planner.tsx", import.meta.url), "utf8");
   const studio = await readFile(new URL("../app/studio/TravelStudio.tsx", import.meta.url), "utf8");
@@ -205,6 +215,16 @@ test("exposes an identity-scoped traveler API without browser secrets", async ()
   assert.match(exportApi, /tripToGeoJson/);
   assert.match(exportApi, /\\uFEFF/);
   assert.match(exportApi, /application\/geo\+json/);
+  assert.match(disambiguationApi, /eq\(planningRuns\.ownerUserId, user\.userId\)/);
+  assert.match(disambiguationApi, /Cross-origin writes are not allowed/);
+  assert.match(disambiguationApi, /candidate\.verificationStatus !== "needs_confirmation"/);
+  assert.match(disambiguationApi, /status: remaining \? "awaiting_confirmation" : "queued"/);
+  assert.match(disambiguationApi, /provider_calls: 0/);
+  assert.match(disambiguationPage, /requireChatGPTUser/);
+  assert.match(disambiguationPanel, /在高德查看/);
+  assert.match(disambiguationPanel, /选择此地点/);
+  assert.match(disambiguationPanel, /排除此候选/);
+  assert.match(studio, /\/disambiguation\?run_id=/);
   assert.match(studio, /setTimeout\(poll, 5000\)/);
   assert.match(studio, /Research Worker/);
   assert.match(studio, /任务已进入持久化队列/);
