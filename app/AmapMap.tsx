@@ -78,12 +78,34 @@ function searchRoute(AMap: any, mode: string, from: Poi, to: Poi) {
   });
 }
 
+function containerIsVisible(container: HTMLDivElement | null) {
+  return Boolean(container && container.clientWidth > 1 && container.clientHeight > 1);
+}
+
+function applyResearchViewport(AMap: any, map: any, container: HTMLDivElement | null, researchArea?: MapView) {
+  if (!researchArea?.bounds || !containerIsVisible(container)) return false;
+  const bounds = new AMap.Bounds(
+    [researchArea.bounds.southwest.lng, researchArea.bounds.southwest.lat],
+    [researchArea.bounds.northeast.lng, researchArea.bounds.northeast.lat],
+  );
+  map.setBounds(bounds, false, [56, 56, 56, 56]);
+  return true;
+}
+
+function zoomToPoi(map: any, poi: Poi) {
+  if (!poi.location) return;
+  const currentZoom = Number(map.getZoom?.() ?? 12);
+  const targetZoom = Math.min(18, Math.max(16, currentZoom + 2));
+  map.setZoomAndCenter(targetZoom, [poi.location.lng, poi.location.lat], false, 320);
+}
+
 export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiId, color, revision, researchArea, onSelect, onRouteSummary }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const baseLayersRef = useRef<{ road: any; satellite: any; roadNet: any } | null>(null);
   const overlaysRef = useRef<any[]>([]);
   const initialViewportAppliedRef = useRef(false);
+  const initialRouteDrawCompletedRef = useRef(false);
   const [mapReady, setMapReady] = useState(false);
   const [layerMode, setLayerMode] = useState<MapLayerMode>("road");
   const [routeState, setRouteState] = useState<"loading" | "ready" | "drawing" | "error">("loading");
@@ -131,6 +153,25 @@ export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiI
   }, [layerMode, mapReady]);
 
   useEffect(() => {
+    if (!mapReady || !mapRef.current || !window.AMap || !containerRef.current) return;
+    const container = containerRef.current;
+    const map = mapRef.current;
+    const syncVisibleMap = () => {
+      if (!containerIsVisible(container)) return;
+      map.resize();
+      if (!initialViewportAppliedRef.current) {
+        initialViewportAppliedRef.current = applyResearchViewport(window.AMap, map, container, researchArea);
+      }
+    };
+
+    syncVisibleMap();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(syncVisibleMap);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [mapReady, researchArea]);
+
+  useEffect(() => {
     if (!mapReady || !mapRef.current || !window.AMap) return;
     let cancelled = false;
     const AMap = window.AMap;
@@ -149,6 +190,10 @@ export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiI
         offset: new AMap.Pixel(-17, -17),
       });
       marker.on("click", () => onSelect(poi.id));
+      marker.on("dblclick", () => {
+        onSelect(poi.id);
+        zoomToPoi(map, poi);
+      });
       return marker;
     });
 
@@ -161,6 +206,10 @@ export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiI
         offset: new AMap.Pixel(-15, -15),
       });
       marker.on("click", () => onSelect(poi.id));
+      marker.on("dblclick", () => {
+        onSelect(poi.id);
+        zoomToPoi(map, poi);
+      });
       return marker;
     });
 
@@ -207,14 +256,12 @@ export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiI
       map.add(lines);
       overlaysRef.current = [...markers, ...lines];
       const routeOverlays = [...dayMarkers, ...lines];
-      if (!initialViewportAppliedRef.current && researchArea?.bounds) {
-        const bounds = new AMap.Bounds(
-          [researchArea.bounds.southwest.lng, researchArea.bounds.southwest.lat],
-          [researchArea.bounds.northeast.lng, researchArea.bounds.northeast.lat],
-        );
-        map.setBounds(bounds, false, [56, 56, 56, 56]);
-        initialViewportAppliedRef.current = true;
-      } else if (routeOverlays.length) {
+      if (!initialRouteDrawCompletedRef.current) {
+        if (!initialViewportAppliedRef.current) {
+          initialViewportAppliedRef.current = applyResearchViewport(AMap, map, containerRef.current, researchArea);
+        }
+        initialRouteDrawCompletedRef.current = true;
+      } else if (routeOverlays.length && initialViewportAppliedRef.current) {
         map.setFitView(routeOverlays, false, [72, 72, 72, 72], 16);
       }
       onRouteSummary({ distance, duration, complete });
@@ -232,6 +279,15 @@ export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiI
     });
   }, [mapReady, revision, selectedPoiId]);
 
+  function focusResearchArea() {
+    if (!mapRef.current || !window.AMap || !containerRef.current) return;
+    mapRef.current.resize();
+    if (applyResearchViewport(window.AMap, mapRef.current, containerRef.current, researchArea)) {
+      initialViewportAppliedRef.current = true;
+      setMessage("已返回青田县研究区");
+    }
+  }
+
   return (
     <div className="amap-shell">
       <div ref={containerRef} className="amap-container" aria-label="高德真实道路地图" />
@@ -240,8 +296,9 @@ export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiI
         <div className="map-layer-switch" role="group" aria-label="切换地图图层">
           <button className={layerMode === "road" ? "active" : ""} onClick={() => setLayerMode("road")} aria-pressed={layerMode === "road"}>道路</button>
           <button className={layerMode === "satellite" ? "active" : ""} onClick={() => setLayerMode("satellite")} aria-pressed={layerMode === "satellite"}>遥感</button>
+          <button onClick={focusResearchArea} title="返回旅行研究区">研究区</button>
         </div>
-        <div className="candidate-map-legend"><span>● 行程</span><span>＋ 可加入候选点</span></div>
+        <div className="candidate-map-legend"><span>● 行程</span><span>＋ 可加入候选点</span><span>双击点位放大</span></div>
       </div>
     </div>
   );

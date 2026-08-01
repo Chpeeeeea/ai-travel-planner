@@ -25,10 +25,20 @@ test("server-renders the Qingtian travel planner", async () => {
   assert.match(html, /21/);
   assert.match(html, /道路/);
   assert.match(html, /遥感/);
+  assert.match(html, /研究区/);
+  assert.match(html, /双击点位放大/);
   assert.match(html, /行程卡片/);
   assert.match(html, /路线地图/);
   assert.match(html, /候选地点/);
   assert.doesNotMatch(html, /Your site is taking shape|react-loading-skeleton/);
+});
+
+test("restores hidden maps and supports focused marker zoom", async () => {
+  const source = await readFile(new URL("../app/AmapMap.tsx", import.meta.url), "utf8");
+  assert.match(source, /ResizeObserver/);
+  assert.match(source, /marker\.on\("dblclick"/);
+  assert.match(source, /setZoomAndCenter/);
+  assert.match(source, /clientWidth > 1 && container\.clientHeight > 1/);
 });
 
 test("defines a destination research-area viewport", async () => {
