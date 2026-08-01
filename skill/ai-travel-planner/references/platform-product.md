@@ -15,6 +15,7 @@ PlanningRun
 ```
 
 - `PlanningRun`：一次可恢复、可审计的生成任务，记录当前阶段、调用量、错误和产物版本。
+- 平台面向多用户时，`PlanningRun` 必须绑定稳定的服务端用户 ID；查询和动态结果必须再次校验归属，不能仅靠前端隐藏。
 - `Brief`：目的地、天数、兴趣、特别想吃 `must_eat`、必去地点 `must_visit`、节奏、时间窗、交通与硬约束。
 - `ResearchEvidence`：一条来源对一个地点名称的支持，只保存研究事实、意见与来源。
 - `Candidate`：跨来源合并后的名称级候选；进入供应商核验前不得拥有高德 ID。
@@ -48,6 +49,14 @@ brief
 | Itinerary Planner | Verified places | Days/Assignments | 不排入歧义或未核验地点 |
 | Route Service | Adjacent assignments | RouteSegments | 不为候选池做全量矩阵 |
 | Renderer | trip.json | Cards/Map/Exports | 不生成新的业务事实 |
+
+## 旅行者与执行器边界
+
+- 公开落地页可以展示产品与案例，但创建任务、任务历史和动态结果应进入登录区域。
+- 浏览器只调用身份范围内的旅行者 API；不得获得执行器令牌、高德 Web Service Key 或可代替所有用户写入的凭据。
+- Research Worker 使用独立服务器凭据读取待处理 Brief、写入真实研究证据并推进阶段；任务尚未被 Worker 接管时保持 `brief`，界面明确显示等待状态。
+- 用户 API 必须按 `owner_user_id` 查询；受信执行器 API 继续按运行 ID 工作，但仅在服务器侧开放。
+- 进度页轮询持久化状态和事件，不暴露内部 Agent 对话；刷新页面后必须能从同一 PlanningRun 恢复。
 
 ## 调用预算
 

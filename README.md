@@ -18,7 +18,8 @@ AI Travel Planner 是“研究优先、地图收口”的旅行规划平台。�
 
 ## 当前实现
 
-- `/`：平台产品入口，可填写目的地、天数、兴趣、“特别想吃”和“必去地点”，生成研究 Brief 并预估候选核验与路线调用量。
+- `/`：公开平台入口，可填写目的地、天数、兴趣、“特别想吃”和“必去地点”，查看调用量预估并进入登录后的研究工作台。
+- `/studio`：旅行者工作台。使用 ChatGPT 登录，创建属于当前用户的 PlanningRun，恢复历史任务并查看七阶段进度、研究线覆盖和实际高德调用数。
 - `/cases/qingtian`：青田三日交互案例，包含卡片、候选地点、高德道路与遥感图层。
 - `platform/pipeline.py`：可执行的离线管线，负责候选合并评分、高德核验清单、每日编排和相邻路线清单。
 - D1 `PlanningRun`：保存 Brief、研究证据、候选、高德匹配、日程、路线、阶段事件和供应商调用计数。
@@ -30,6 +31,8 @@ AI Travel Planner 是“研究优先、地图收口”的旅行规划平台。�
 - `/api/planning-runs/schedule`：等待 shortlist 全部完成核验后，从已核验地点中生成每天 4–6 点的地理聚类行程。
 - `/api/planning-runs/routes`：只创建和计算同一天相邻地点的道路，每批最多 5 段，支持安全重试与无虚构耗时的降级状态。
 - `/api/planning-runs/trip`：把一次运行组装为统一 `trip.json` 契约，供卡片、地图、Markdown 与 GeoJSON 使用。
+- `/api/trips`：登录用户的安全外壳，只创建和读取当前用户拥有的 PlanningRun；不会把受信执行器令牌下发到浏览器。
+- `/api/trips/trip`：先校验登录身份和任务归属，再返回当前用户的统一行程数据。
 - `cases/qingtian/trip.json`：青田案例的最终行程事实源。
 - `skill/ai-travel-planner`：与产品管线一致的 Codex Skill 源码。
 
@@ -43,6 +46,8 @@ AI Travel Planner 是“研究优先、地图收口”的旅行规划平台。�
 服务端使用高德 [POI 2.0](https://lbs.amap.com/api/webservice/guide/api-advanced/newpoisearch) 与[路径规划 2.0](https://lbs.amap.com/api/webservice/guide/api/newroute)。生产环境需把 Web 服务 Key 保存为 `AMAP_WEBSERVICE_KEY` secret；它与浏览器 JSAPI Key 是不同类型的 Key。
 
 Brief 中的 `must_visit` 是有证据候选的强优先级，`must_eat` 用于提升名称、推荐理由或现场看点匹配的候选。它们不会直接生成坐标或已核验地点。
+
+当前新任务会先持久化在 `brief` 阶段，工作台会持续显示下一步。多来源 Research Worker 尚未接入生产环境，因此平台不会把尚未执行的官方文旅、小红书或 OSM 检索伪装成完成；受信执行器仍可通过 `/api/planning-runs/research` 写入真实证据并继续后续阶段。
 
 ## 青田案例
 

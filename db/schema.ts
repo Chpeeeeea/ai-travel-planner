@@ -5,6 +5,7 @@ const createdAt = () => text("created_at").notNull().default(sql`CURRENT_TIMESTA
 
 export const planningRuns = sqliteTable("planning_runs", {
   id: text("id").primaryKey(),
+  ownerUserId: text("owner_user_id"),
   destination: text("destination").notNull(),
   days: integer("days").notNull(),
   status: text("status").notNull().default("draft"),
@@ -21,6 +22,7 @@ export const planningRuns = sqliteTable("planning_runs", {
   createdAt: createdAt(),
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [
+  index("idx_planning_runs_owner_updated").on(table.ownerUserId, table.updatedAt),
   index("idx_planning_runs_status_updated").on(table.status, table.updatedAt),
   index("idx_planning_runs_destination_created").on(table.destination, table.createdAt),
 ]);

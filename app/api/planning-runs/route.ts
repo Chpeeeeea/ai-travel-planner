@@ -1,50 +1,6 @@
 import { desc, eq } from "drizzle-orm";
+import { normalizeBrief } from "../../../platform/runtime/brief.mjs";
 import { dataLayer, deny, digest, routeError, stageOrder, type RunStage } from "../../../platform/server/planning-runtime";
-
-type BriefInput = {
-  destination?: string;
-  days?: number;
-  interests?: string[];
-  must_eat?: string[];
-  must_visit?: string[];
-  pace?: string;
-  transport_mode?: string;
-  daily_window?: { start?: string; end?: string };
-  source_policy?: string[];
-  candidate_target?: { min?: number; max?: number };
-  daily_stops?: { min?: number; max?: number };
-};
-
-function cleanStrings(values: unknown) {
-  if (!Array.isArray(values)) return [];
-  return [...new Set(values.map((value) => String(value).trim().slice(0, 80)).filter(Boolean))].slice(0, 12);
-}
-
-function normalizeBrief(input: BriefInput) {
-  const destination = input.destination?.trim() ?? "";
-  const days = Number(input.days);
-  if (!destination || destination.length > 80) throw new Error("destination must be 1–80 characters");
-  if (!Number.isInteger(days) || days < 1 || days > 14) throw new Error("days must be an integer between 1 and 14");
-  const candidateMin = Math.max(20, Math.min(40, Number(input.candidate_target?.min ?? 20)));
-  const candidateMax = Math.max(candidateMin, Math.min(40, Number(input.candidate_target?.max ?? 40)));
-  const dailyStopsMin = Math.max(4, Math.min(6, Number(input.daily_stops?.min ?? 4)));
-  const dailyStopsMax = Math.max(dailyStopsMin, Math.min(6, Number(input.daily_stops?.max ?? 6)));
-  const transportMode = ["walking", "driving", "bicycling", "mixed"].includes(String(input.transport_mode)) ? String(input.transport_mode) : "mixed";
-  const time = (value: unknown, fallback: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(String(value ?? "")) ? String(value) : fallback;
-  return {
-    destination,
-    days,
-    interests: cleanStrings(input.interests),
-    must_eat: cleanStrings(input.must_eat),
-    must_visit: cleanStrings(input.must_visit),
-    pace: String(input.pace || "moderate").slice(0, 30),
-    transport_mode: transportMode,
-    daily_window: { start: time(input.daily_window?.start, "09:00"), end: time(input.daily_window?.end, "18:00") },
-    source_policy: cleanStrings(input.source_policy).length ? cleanStrings(input.source_policy) : ["official", "xiaohongshu", "osm", "multi_topic_research"],
-    candidate_target: { min: candidateMin, max: candidateMax },
-    daily_stops: { min: dailyStopsMin, max: dailyStopsMax },
-  };
-}
 
 export async function GET(request: Request) {
   const denied = await deny(request);
@@ -71,7 +27,7 @@ export async function POST(request: Request) {
   const denied = await deny(request);
   if (denied) return denied;
   try {
-    const brief = normalizeBrief(await request.json() as BriefInput);
+    const brief = normalizeBrief(await request.json());
     const id = crypto.randomUUID();
     const { getDb, planningBriefs, planningRunEvents, planningRuns } = await dataLayer();
     const db = getDb();

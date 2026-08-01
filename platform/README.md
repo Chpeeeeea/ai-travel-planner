@@ -31,6 +31,13 @@ python platform/pipeline.py audit --input itinerary.json
 
 ## 平台服务
 
+旅行者入口与受信执行器分层：
+
+- `/studio` 与 `/api/trips` 使用 ChatGPT 登录身份，只能创建和查看当前用户拥有的 PlanningRun。
+- `planning_runs.owner_user_id` 是用户任务归属的事实源；公开页面不持有服务令牌。
+- `/api/planning-runs/**` 继续供 Research Worker 与后续阶段执行器使用服务器令牌，避免把高德调用能力交给浏览器。
+- 新任务在 Research Worker 写入真实来源证据前保持 `brief`，不得自动跳过研究阶段。
+
 服务端使用与离线脚本相同的边界：
 
 1. `POST /api/planning-runs` 创建 Brief；支持 `must_eat` 与 `must_visit` 用户约束。
