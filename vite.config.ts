@@ -17,6 +17,7 @@ const localBindingConfig = {
   vars: {
     AMAP_JSAPI_KEY: process.env.AMAP_JSAPI_KEY ?? "",
     AMAP_SECURITY_JS_CODE: process.env.AMAP_SECURITY_JS_CODE ?? "",
+    AMAP_WEBSERVICE_KEY: process.env.AMAP_WEBSERVICE_KEY ?? process.env.AMAP_MAPS_API_KEY ?? "",
   },
   d1_databases: d1
     ? [

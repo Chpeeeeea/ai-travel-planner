@@ -51,6 +51,7 @@ test("server-renders the Qingtian reference case", async () => {
 
 test("restores hidden maps and supports focused marker zoom", async () => {
   const source = await readFile(new URL("../app/AmapMap.tsx", import.meta.url), "utf8");
+  const planner = await readFile(new URL("../app/Planner.tsx", import.meta.url), "utf8");
   assert.match(source, /ResizeObserver/);
   assert.match(source, /marker\.on\("dblclick"/);
   assert.match(source, /setZoomAndCenter/);
@@ -59,6 +60,12 @@ test("restores hidden maps and supports focused marker zoom", async () => {
   assert.match(source, /requestAnimationFrame/);
   assert.match(source, /setBounds\(bounds, immediately/);
   assert.doesNotMatch(source, /map\.resize\(\)|mapRef\.current\.resize\(\)/);
+  assert.match(source, /focusRevision/);
+  assert.match(source, /focusWhenVisible/);
+  assert.match(source, /已定位/);
+  assert.match(planner, /focusPoiOnMap/);
+  assert.match(planner, /setMobileView\("map"\)/);
+  assert.match(planner, /在地图中查看候选地点/);
 });
 
 test("defines a destination research-area viewport", async () => {
@@ -129,4 +136,26 @@ test("keeps research ingestion and candidate compilation provider-free", async (
   assert.match(compileApi, /poiCalls: 0/);
   assert.match(reviewApi, /sent_to_amap/);
   assert.doesNotMatch(runtime, /AMAP_|restapi\.amap|webapi\.amap|maps_text_search|provider_poi_id|\blng\b|\blat\b/);
+});
+
+test("separates shortlist verification, scheduling, adjacent routing and trip assembly", async () => {
+  const verifyApi = await readFile(new URL("../app/api/planning-runs/verify/route.ts", import.meta.url), "utf8");
+  const scheduleApi = await readFile(new URL("../app/api/planning-runs/schedule/route.ts", import.meta.url), "utf8");
+  const routesApi = await readFile(new URL("../app/api/planning-runs/routes/route.ts", import.meta.url), "utf8");
+  const tripApi = await readFile(new URL("../app/api/planning-runs/trip/route.ts", import.meta.url), "utf8");
+  const provider = await readFile(new URL("../platform/server/amap-provider.ts", import.meta.url), "utf8");
+  assert.match(verifyApi, /Math\.min\(5/);
+  assert.match(verifyApi, /needs_confirmation/);
+  assert.match(verifyApi, /providerPoiCalls: run\.providerPoiCalls \+ calls/);
+  assert.match(scheduleApi, /All shortlist candidates must finish POI verification/);
+  assert.match(scheduleApi, /dailyMinimum: run\.dailyStopsMin/);
+  assert.match(scheduleApi, /provider_calls: 0/);
+  assert.match(routesApi, /ordered\.length - 1/);
+  assert.match(routesApi, /Math\.min\(5/);
+  assert.match(routesApi, /fallback_straight_line/);
+  assert.match(tripApi, /schema_version: "1\.0"/);
+  assert.match(tripApi, /map_view: mapView\(points\)/);
+  assert.match(provider, /\/v5\/place\/text/);
+  assert.match(provider, /\/v5\/direction\//);
+  assert.doesNotMatch(scheduleApi, /searchAmapPlaces|requestAmapRoute|restapi\.amap/);
 });

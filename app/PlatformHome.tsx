@@ -57,6 +57,8 @@ export default function PlatformHome() {
       must_eat: parseCustomNeeds(mustEat),
       must_visit: parseCustomNeeds(mustVisit),
       pace: "moderate",
+      transport_mode: "mixed",
+      daily_window: { start: "09:00", end: "18:00" },
       source_policy: ["official", "xiaohongshu", "osm", "multi_topic_research"],
       candidate_target: { min: 20, max: 40 },
       daily_stops: { min: 4, max: 6 },

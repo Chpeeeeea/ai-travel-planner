@@ -80,7 +80,7 @@ The bridge writes MCP protocol traffic only to process pipes. It masks key prese
 
 ## REST fallback
 
-`scripts/amap_rest.py` uses `AMAP_WEBSERVICE_KEY` or `AMAP_MAPS_API_KEY` and the current Web Service endpoints.
+`scripts/amap_rest.py` uses `AMAP_WEBSERVICE_KEY` or `AMAP_MAPS_API_KEY`, POI 2.0 `/v5/place/*` and Route 2.0 `/v5/direction/*` endpoints. Route duration and polyline fields are requested explicitly through `show_fields`.
 
 Examples:
 
@@ -89,6 +89,8 @@ python scripts/amap_rest.py poi-text --keywords "故宫博物院" --region "北�
 python scripts/amap_rest.py poi-detail --id "AMAP_POI_ID" --output detail.json
 python scripts/amap_rest.py route --mode walking --origin "116.397,39.909" --destination "116.407,39.919" --output route.json
 ```
+
+公交 Route 2.0 的 `--city` / `--cityd` 必须使用起终点高德 `citycode`；同城时可只传 `--city`。
 
 REST is an adapter, not a second business model. Normalize its response into the shared trip contract.
 

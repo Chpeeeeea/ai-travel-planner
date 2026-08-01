@@ -52,13 +52,13 @@ def request_json(path: str, params: dict[str, Any], timeout: float) -> dict[str,
 
 def route_spec(mode: str) -> tuple[str, dict[str, Any]]:
     if mode == "walking":
-        return "/v3/direction/walking", {}
+        return "/v5/direction/walking", {"alternative_route": 1, "show_fields": "cost,navi,polyline"}
     if mode == "driving":
-        return "/v3/direction/driving", {"strategy": 10, "extensions": "all"}
+        return "/v5/direction/driving", {"strategy": 32, "show_fields": "cost,navi,polyline"}
     if mode == "bicycling":
-        return "/v4/direction/bicycling", {}
+        return "/v5/direction/bicycling", {"alternative_route": 1, "show_fields": "cost,navi,polyline"}
     if mode == "transit":
-        return "/v3/direction/transit/integrated", {"strategy": 0}
+        return "/v5/direction/transit/integrated", {"strategy": 0, "show_fields": "cost,polyline"}
     raise RuntimeError(f"Unsupported route mode: {mode}")
 
 
@@ -157,12 +157,12 @@ def main() -> int:
                 **defaults,
                 "origin": args.origin,
                 "destination": args.destination,
-                "city": args.city,
-                "cityd": args.cityd,
+                "city1": args.city,
+                "city2": args.cityd or args.city,
                 "waypoints": args.waypoints,
             }
             if args.mode == "transit" and not args.city:
-                raise RuntimeError("Transit routing requires --city")
+                raise RuntimeError("Transit routing requires --city with an AMap citycode")
             payload = request_json(path, params, args.timeout)
             output = args.output
         write_result(payload, output)

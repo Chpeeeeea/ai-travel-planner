@@ -20,6 +20,7 @@ type Props = {
   selectedPoiId: string;
   color: string;
   revision: number;
+  focusRevision: number;
   researchArea?: MapView;
   researchAreaName: string;
   onSelect: (poiId: string) => void;
@@ -109,7 +110,7 @@ function zoomToPoi(map: any, poi: Poi) {
   map.setZoomAndCenter(targetZoom, [poi.location.lng, poi.location.lat], false, 320);
 }
 
-export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiId, color, revision, researchArea, researchAreaName, onSelect, onRouteSummary }: Props) {
+export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiId, color, revision, focusRevision, researchArea, researchAreaName, onSelect, onRouteSummary }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const baseLayersRef = useRef<{ road: any; satellite: any; roadNet: any } | null>(null);
@@ -304,6 +305,30 @@ export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiI
       node.classList.toggle("is-selected", node.dataset.poiId === selectedPoiId);
     });
   }, [mapReady, revision, selectedPoiId]);
+
+  useEffect(() => {
+    if (!focusRevision || !mapReady || !mapRef.current) return;
+    const poi = [...dayPois, ...candidatePois].find((item) => item.id === selectedPoiId);
+    if (!poi?.location) return;
+    let cancelled = false;
+    let frame = 0;
+    let attempts = 0;
+    const focusWhenVisible = () => {
+      if (cancelled) return;
+      if (containerIsVisible(containerRef.current)) {
+        zoomToPoi(mapRef.current, poi);
+        setMessage(`已定位 ${poi.name}`);
+        return;
+      }
+      attempts += 1;
+      if (attempts < 30) frame = requestAnimationFrame(focusWhenVisible);
+    };
+    frame = requestAnimationFrame(focusWhenVisible);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+    };
+  }, [candidatePois, dayPois, focusRevision, mapReady, selectedPoiId]);
 
   function focusResearchArea() {
     if (!mapRef.current || !window.AMap || !containerRef.current) return;

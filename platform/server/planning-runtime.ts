@@ -3,7 +3,11 @@ export type RunStage = typeof stageOrder[number];
 
 export async function runtimeSecrets() {
   const { env } = await import("cloudflare:workers");
-  return env as unknown as { PLANNING_RUN_WRITE_TOKEN?: string };
+  return env as unknown as {
+    PLANNING_RUN_WRITE_TOKEN?: string;
+    AMAP_WEBSERVICE_KEY?: string;
+    AMAP_MAPS_API_KEY?: string;
+  };
 }
 
 export async function dataLayer() {

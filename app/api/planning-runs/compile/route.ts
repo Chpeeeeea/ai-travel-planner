@@ -41,23 +41,9 @@ export async function POST(request: Request) {
       minimum: Math.max(20, Math.min(40, run.candidateMin)),
       maximum: Math.max(20, Math.min(40, run.candidateMax)),
     });
-    const shortlist = compiled.candidates.filter((candidate: { shortlistRank: number | null }) => candidate.shortlistRank !== null);
+    const shortlist = compiled.candidates.filter((candidate): candidate is typeof candidate & { shortlistRank: number } => candidate.shortlistRank !== null);
     if (!shortlist.length) return Response.json({ error: "Research evidence did not produce any valid place candidates" }, { status: 422 });
-    const rows = await Promise.all(shortlist.map(async (candidate: {
-      canonicalName: string;
-      normalizedName: string;
-      aliases: string[];
-      themes: string[];
-      whyVisit: string;
-      watchFor: string[];
-      stayMinutes: number;
-      riskFlags: string[];
-      score: number;
-      evidenceCount: number;
-      shortlistRank: number;
-      userPriority: "must_visit" | "must_eat" | null;
-      mustEatMatches: string[];
-    }) => ({
+    const rows = await Promise.all(shortlist.map(async (candidate) => ({
       id: `candidate-${(await digest(`${runId}:${candidate.normalizedName}`)).slice(0, 24)}`,
       runId,
       canonicalName: candidate.canonicalName,

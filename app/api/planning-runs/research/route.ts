@@ -44,7 +44,7 @@ function normalizeEvidence(input: EvidenceInput) {
   const explicitAuthority = Number(input.source?.authority);
   const authority = Number.isFinite(explicitAuthority)
     ? Math.max(0, Math.min(1, explicitAuthority))
-    : SOURCE_WEIGHT[kind];
+    : SOURCE_WEIGHT[kind as keyof typeof SOURCE_WEIGHT];
   return {
     lane,
     placeName,

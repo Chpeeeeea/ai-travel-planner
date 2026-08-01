@@ -8,6 +8,8 @@ type BriefInput = {
   must_eat?: string[];
   must_visit?: string[];
   pace?: string;
+  transport_mode?: string;
+  daily_window?: { start?: string; end?: string };
   source_policy?: string[];
   candidate_target?: { min?: number; max?: number };
   daily_stops?: { min?: number; max?: number };
@@ -27,6 +29,8 @@ function normalizeBrief(input: BriefInput) {
   const candidateMax = Math.max(candidateMin, Math.min(40, Number(input.candidate_target?.max ?? 40)));
   const dailyStopsMin = Math.max(4, Math.min(6, Number(input.daily_stops?.min ?? 4)));
   const dailyStopsMax = Math.max(dailyStopsMin, Math.min(6, Number(input.daily_stops?.max ?? 6)));
+  const transportMode = ["walking", "driving", "bicycling", "mixed"].includes(String(input.transport_mode)) ? String(input.transport_mode) : "mixed";
+  const time = (value: unknown, fallback: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(String(value ?? "")) ? String(value) : fallback;
   return {
     destination,
     days,
@@ -34,6 +38,8 @@ function normalizeBrief(input: BriefInput) {
     must_eat: cleanStrings(input.must_eat),
     must_visit: cleanStrings(input.must_visit),
     pace: String(input.pace || "moderate").slice(0, 30),
+    transport_mode: transportMode,
+    daily_window: { start: time(input.daily_window?.start, "09:00"), end: time(input.daily_window?.end, "18:00") },
     source_policy: cleanStrings(input.source_policy).length ? cleanStrings(input.source_policy) : ["official", "xiaohongshu", "osm", "multi_topic_research"],
     candidate_target: { min: candidateMin, max: candidateMax },
     daily_stops: { min: dailyStopsMin, max: dailyStopsMax },

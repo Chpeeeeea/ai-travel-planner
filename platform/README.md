@@ -37,7 +37,13 @@ python platform/pipeline.py audit --input itinerary.json
 2. `POST /api/planning-runs/research` 分批写入研究证据；单批最多 100 条，重复来源幂等更新。
 3. `POST /api/planning-runs/compile` 统一做别名合并、去重评分并持久化最多 40 个 shortlist。
 4. `GET /api/planning-runs/candidates?run_id=...` 获取候选审阅结果。
+5. `POST /api/planning-runs/verify` 每批核验最多 5 个 shortlist 候选；`PATCH` 处理同名 POI 的确认或拒绝。
+6. `POST /api/planning-runs/schedule` 只从已核验地点生成每天 4–6 个地点。
+7. `POST /api/planning-runs/routes` 创建同日相邻 RouteSegment，并每批最多计算 5 段真实道路。
+8. `GET /api/planning-runs/trip?run_id=...` 输出卡片与地图共用的旅行事实源。
 
 这些接口都使用服务端令牌保护。研究与候选编译不会读取高德 Key，阶段事件中的 POI/路线调用增量固定为 0。
 
 候选编译只对已有研究证据应用用户约束：名称或别名命中 `must_visit` 时强制优先排序，介绍或现场看点命中 `must_eat` 时增加匹配分；两者仍保持 `candidate` 状态，等待高德核验。
+
+高德调用使用服务端 `AMAP_WEBSERVICE_KEY`，不把 Key 发给浏览器。核验自动确认阈值为 0.80，且第一、第二匹配分差必须至少为 0.15。编排阶段不调用地图服务；路线只查询已落入日程的相邻点，失败结果保持可重试或标为无耗时的端点连线。
