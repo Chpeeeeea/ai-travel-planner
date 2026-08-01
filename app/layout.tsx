@@ -2,14 +2,21 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "青田三日 · AI Travel Planner",
-  description: "卡片优先、地图联动的青田三日旅行工作台。",
+  metadataBase: new URL("https://qingtian-ai-travel.amandeepchenisekyana.chatgpt.site"),
+  title: "AI Travel Planner",
+  description: "先研究、再核验、最后规划真实路线的 AI 旅行平台。",
   openGraph: {
-    title: "青田三日 · 山水侨乡食游",
-    description: "21 个真实高德 POI、15 段已核验路线，支持候选点插入和道路、遥感图层切换。",
-    images: [{ url: "/og-v2.png", width: 1728, height: 910 }],
+    title: "AI Travel Planner · Research first, route last",
+    description: "多源旅行研究、精简 POI 核验、每日编排与真实道路地图。",
+    images: [{ url: "/og-platform.png", width: 1728, height: 910, alt: "AI Travel Planner 从研究证据到真实路线的产品流程" }],
     locale: "zh_CN",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "AI Travel Planner · Research first, route last",
+    description: "多源旅行研究、精简 POI 核验、每日编排与真实道路地图。",
+    images: ["/og-platform.png"],
   },
 };
 

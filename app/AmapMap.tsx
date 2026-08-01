@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- AMap JSAPI is loaded dynamically and has no bundled project types. */
 
 import { useEffect, useRef, useState } from "react";
-import type { Poi, Segment } from "./travelTypes";
+import type { MapView, Poi, Segment } from "./travelTypes";
 
 declare global {
   interface Window {
@@ -20,6 +20,9 @@ type Props = {
   selectedPoiId: string;
   color: string;
   revision: number;
+  focusRevision: number;
+  researchArea?: MapView;
+  researchAreaName: string;
   onSelect: (poiId: string) => void;
   onRouteSummary: (summary: RouteSummary) => void;
 };
@@ -77,11 +80,43 @@ function searchRoute(AMap: any, mode: string, from: Poi, to: Poi) {
   });
 }
 
-export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiId, color, revision, onSelect, onRouteSummary }: Props) {
+function containerIsVisible(container: HTMLDivElement | null) {
+  return Boolean(container && container.clientWidth > 1 && container.clientHeight > 1);
+}
+
+function applyResearchViewport(AMap: any, map: any, container: HTMLDivElement | null, researchArea?: MapView, immediately = true) {
+  if (!researchArea || !containerIsVisible(container)) return false;
+  if (researchArea.bounds) {
+    const bounds = new AMap.Bounds(
+      [researchArea.bounds.southwest.lng, researchArea.bounds.southwest.lat],
+      [researchArea.bounds.northeast.lng, researchArea.bounds.northeast.lat],
+    );
+    map.setBounds(bounds, immediately, [56, 56, 56, 56]);
+  } else {
+    map.setZoomAndCenter(
+      researchArea.zoom,
+      [researchArea.center.lng, researchArea.center.lat],
+      immediately,
+      320,
+    );
+  }
+  return true;
+}
+
+function zoomToPoi(map: any, poi: Poi) {
+  if (!poi.location) return;
+  const currentZoom = Number(map.getZoom?.() ?? 12);
+  const targetZoom = Math.min(18, Math.max(16, currentZoom + 2));
+  map.setZoomAndCenter(targetZoom, [poi.location.lng, poi.location.lat], false, 320);
+}
+
+export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiId, color, revision, focusRevision, researchArea, researchAreaName, onSelect, onRouteSummary }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const baseLayersRef = useRef<{ road: any; satellite: any; roadNet: any } | null>(null);
   const overlaysRef = useRef<any[]>([]);
+  const initialViewportAppliedRef = useRef(false);
+  const initialRouteDrawCompletedRef = useRef(false);
   const [mapReady, setMapReady] = useState(false);
   const [layerMode, setLayerMode] = useState<MapLayerMode>("road");
   const [routeState, setRouteState] = useState<"loading" | "ready" | "drawing" | "error">("loading");
@@ -97,15 +132,22 @@ export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiI
         const roadNet = new AMap.TileLayer.RoadNet({ zooms: [3, 20] });
         baseLayersRef.current = { road, satellite, roadNet };
         mapRef.current = new AMap.Map(containerRef.current, {
-          zoom: 11,
-          center: [120.286, 28.135],
+          zoom: researchArea?.zoom ?? 11,
+          center: researchArea ? [researchArea.center.lng, researchArea.center.lat] : [120.286, 28.135],
           viewMode: "2D",
+          resizeEnable: true,
+          doubleClickZoom: true,
           layers: [road],
           mapStyle: "amap://styles/whitesmoke",
         });
+        initialViewportAppliedRef.current = false;
+        initialRouteDrawCompletedRef.current = false;
         AMap.plugin("AMap.ToolBar", () => mapRef.current?.addControl(new AMap.ToolBar({ position: "RB" })));
-        setMapReady(true);
-        setRouteState("ready");
+        mapRef.current.on("complete", () => {
+          if (cancelled) return;
+          setMapReady(true);
+          setRouteState("ready");
+        });
       })
       .catch((error) => {
         if (!cancelled) {
@@ -119,13 +161,38 @@ export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiI
       mapRef.current = null;
       baseLayersRef.current = null;
     };
-  }, []);
+  }, [researchArea]);
 
   useEffect(() => {
     if (!mapReady || !mapRef.current || !baseLayersRef.current) return;
     const { road, satellite, roadNet } = baseLayersRef.current;
     mapRef.current.setLayers(layerMode === "satellite" ? [satellite, roadNet] : [road]);
   }, [layerMode, mapReady]);
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !window.AMap || !containerRef.current) return;
+    const container = containerRef.current;
+    const map = mapRef.current;
+    let frame = 0;
+    const syncVisibleMap = () => {
+      if (!containerIsVisible(container)) return;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (!initialViewportAppliedRef.current) {
+          initialViewportAppliedRef.current = applyResearchViewport(window.AMap, map, container, researchArea);
+        }
+      });
+    };
+
+    syncVisibleMap();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(syncVisibleMap);
+    observer.observe(container);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [mapReady, researchArea]);
 
   useEffect(() => {
     if (!mapReady || !mapRef.current || !window.AMap) return;
@@ -146,6 +213,12 @@ export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiI
         offset: new AMap.Pixel(-17, -17),
       });
       marker.on("click", () => onSelect(poi.id));
+      marker.on("dblclick", (event: any) => {
+        event?.originEvent?.stopPropagation?.();
+        onSelect(poi.id);
+        zoomToPoi(map, poi);
+        setMessage(`已放大 ${poi.name}`);
+      });
       return marker;
     });
 
@@ -158,6 +231,12 @@ export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiI
         offset: new AMap.Pixel(-15, -15),
       });
       marker.on("click", () => onSelect(poi.id));
+      marker.on("dblclick", (event: any) => {
+        event?.originEvent?.stopPropagation?.();
+        onSelect(poi.id);
+        zoomToPoi(map, poi);
+        setMessage(`已放大 ${poi.name}`);
+      });
       return marker;
     });
 
@@ -203,14 +282,22 @@ export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiI
       if (cancelled) return;
       map.add(lines);
       overlaysRef.current = [...markers, ...lines];
-      if (overlaysRef.current.length) map.setFitView(overlaysRef.current, false, [72, 72, 72, 72], 16);
+      const routeOverlays = [...dayMarkers, ...lines];
+      if (!initialRouteDrawCompletedRef.current) {
+        if (!initialViewportAppliedRef.current) {
+          initialViewportAppliedRef.current = applyResearchViewport(AMap, map, containerRef.current, researchArea);
+        }
+        initialRouteDrawCompletedRef.current = true;
+      } else if (routeOverlays.length && initialViewportAppliedRef.current) {
+        map.setFitView(routeOverlays, false, [72, 72, 72, 72], 16);
+      }
       onRouteSummary({ distance, duration, complete });
       setRouteState("ready");
       setMessage(complete ? "真实道路已刷新" : "部分路段暂时无法计算");
     });
 
     return () => { cancelled = true; };
-  }, [candidatePois, color, dayPois, mapReady, onRouteSummary, onSelect, revision, segments]);
+  }, [candidatePois, color, dayPois, mapReady, onRouteSummary, onSelect, researchArea, revision, segments]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -218,6 +305,38 @@ export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiI
       node.classList.toggle("is-selected", node.dataset.poiId === selectedPoiId);
     });
   }, [mapReady, revision, selectedPoiId]);
+
+  useEffect(() => {
+    if (!focusRevision || !mapReady || !mapRef.current) return;
+    const poi = [...dayPois, ...candidatePois].find((item) => item.id === selectedPoiId);
+    if (!poi?.location) return;
+    let cancelled = false;
+    let frame = 0;
+    let attempts = 0;
+    const focusWhenVisible = () => {
+      if (cancelled) return;
+      if (containerIsVisible(containerRef.current)) {
+        zoomToPoi(mapRef.current, poi);
+        setMessage(`已定位 ${poi.name}`);
+        return;
+      }
+      attempts += 1;
+      if (attempts < 30) frame = requestAnimationFrame(focusWhenVisible);
+    };
+    frame = requestAnimationFrame(focusWhenVisible);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+    };
+  }, [candidatePois, dayPois, focusRevision, mapReady, selectedPoiId]);
+
+  function focusResearchArea() {
+    if (!mapRef.current || !window.AMap || !containerRef.current) return;
+    if (applyResearchViewport(window.AMap, mapRef.current, containerRef.current, researchArea, false)) {
+      initialViewportAppliedRef.current = true;
+      setMessage(`已返回${researchAreaName}研究区`);
+    }
+  }
 
   return (
     <div className="amap-shell">
@@ -227,8 +346,9 @@ export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiI
         <div className="map-layer-switch" role="group" aria-label="切换地图图层">
           <button className={layerMode === "road" ? "active" : ""} onClick={() => setLayerMode("road")} aria-pressed={layerMode === "road"}>道路</button>
           <button className={layerMode === "satellite" ? "active" : ""} onClick={() => setLayerMode("satellite")} aria-pressed={layerMode === "satellite"}>遥感</button>
+          <button onClick={focusResearchArea} title="返回旅行研究区">研究区</button>
         </div>
-        <div className="candidate-map-legend"><span>● 行程</span><span>＋ 可加入候选点</span></div>
+        <div className="candidate-map-legend"><span>● 行程</span><span>＋ 可加入候选点</span><span>双击点位放大</span></div>
       </div>
     </div>
   );

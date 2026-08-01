@@ -60,8 +60,9 @@ export default function Planner({ data }: { data: TripData }) {
   const [selectedPoiId, setSelectedPoiId] = useState(data.days[0]?.assignments[0]?.poi_id ?? "");
   const [expandedPoiIds, setExpandedPoiIds] = useState<Set<string>>(new Set());
   const [theme, setTheme] = useState("全部");
-  const [mobileView, setMobileView] = useState<"plan" | "map">("plan");
+  const [mobileView, setMobileView] = useState<"plan" | "map" | "discover">("plan");
   const [routeRevision, setRouteRevision] = useState(0);
+  const [mapFocusRevision, setMapFocusRevision] = useState(0);
   const [customizedDays, setCustomizedDays] = useState<Set<string>>(new Set());
   const [liveRouteSummary, setLiveRouteSummary] = useState<Record<string, { distance: number; duration: number; complete: boolean }>>({});
 
@@ -84,6 +85,11 @@ export default function Planner({ data }: { data: TripData }) {
   const totalDuration = live?.duration || staticDuration;
 
   const selectPoi = useCallback((poiId: string) => setSelectedPoiId(poiId), []);
+  const focusPoiOnMap = useCallback((poiId: string) => {
+    setSelectedPoiId(poiId);
+    setMapFocusRevision((value) => value + 1);
+    setMobileView("map");
+  }, []);
   const updateRouteSummary = useCallback((summary: { distance: number; duration: number; complete: boolean }) => {
     setLiveRouteSummary((current) => {
       const before = current[selectedDay.id];
@@ -127,6 +133,8 @@ export default function Planner({ data }: { data: TripData }) {
     };
     customizeDay((items) => [...items.slice(0, index), assignment, ...items.slice(index)]);
     setSelectedPoiId(poi.id);
+    setMapFocusRevision((value) => value + 1);
+    setMobileView("map");
     setExpandedPoiIds((current) => new Set(current).add(poi.id));
   }
 
@@ -188,10 +196,11 @@ export default function Planner({ data }: { data: TripData }) {
       <div className="mobile-switch" role="tablist" aria-label="移动端视图">
         <button className={mobileView === "plan" ? "active" : ""} onClick={() => setMobileView("plan")}>行程卡片</button>
         <button className={mobileView === "map" ? "active" : ""} onClick={() => setMobileView("map")}>路线地图</button>
+        <button className={mobileView === "discover" ? "active" : ""} onClick={() => setMobileView("discover")}>候选地点</button>
       </div>
 
       <section className="workspace">
-        <aside className={`plan-panel ${mobileView === "map" ? "mobile-hidden" : ""}`}>
+        <aside className={`plan-panel ${mobileView !== "plan" ? "responsive-hidden" : ""}`}>
           <div className="panel-head">
             <div><p className="eyebrow">TODAY&apos;S PLAN</p><h2>{selectedDay.title}</h2></div>
             <span>{assignments.length} 站</span>
@@ -209,7 +218,7 @@ export default function Planner({ data }: { data: TripData }) {
               return (
                 <div className="timeline-item" key={poi.id}>
                   <article className={`poi-card-shell ${poi.id === selectedPoiId ? "selected" : ""}`} style={{ "--accent": color } as React.CSSProperties}>
-                    <button className="poi-card" onClick={() => selectPoi(poi.id)}>
+                    <button className="poi-card" onClick={() => focusPoiOnMap(poi.id)} aria-label={`在地图中查看 ${poi.name}`}>
                       <span className="stop-number">{String(index + 1).padStart(2, "0")}</span>
                       <span className="poi-main">
                         <span className="poi-time">{assignment.arrival_time && assignment.departure_time ? `${assignment.arrival_time}–${assignment.departure_time}` : "时间待排"}</span>
@@ -243,7 +252,7 @@ export default function Planner({ data }: { data: TripData }) {
           </div>
         </aside>
 
-        <section className={`map-panel ${mobileView === "plan" ? "mobile-map-hidden" : ""}`}>
+        <section className={`map-panel ${mobileView !== "map" ? "responsive-hidden" : ""}`}>
           <div className="map-toolbar">
             <div><p className="eyebrow">LIVE ROUTE</p><h2>真实道路地图</h2></div>
             <div className="map-legend"><span className="route-swatch" style={{ background: color }} />Day {selectedDay.day_number}<span className="verified-label">高德 JSAPI · GCJ-02</span></div>
@@ -255,6 +264,9 @@ export default function Planner({ data }: { data: TripData }) {
             selectedPoiId={selectedPoiId}
             color={color}
             revision={routeRevision}
+            focusRevision={mapFocusRevision}
+            researchArea={data.trip.map_view}
+            researchAreaName={data.trip.city}
             onSelect={selectPoi}
             onRouteSummary={updateRouteSummary}
           />
@@ -267,13 +279,13 @@ export default function Planner({ data }: { data: TripData }) {
           </div>
         </section>
 
-        <aside className="candidate-panel">
+        <aside className={`candidate-panel ${mobileView !== "discover" ? "responsive-hidden" : ""}`}>
           <div className="panel-head"><div><p className="eyebrow">DISCOVER</p><h2>候选地点</h2></div><span>{candidatePois.length}</span></div>
           <div className="theme-filter">{themes.map((item) => <button key={item} className={theme === item ? "active" : ""} onClick={() => setTheme(item)}>{item}</button>)}</div>
           <div className="candidate-list">
             {candidatePois.map((poi) => (
               <article key={poi.id} className={`candidate-card ${poi.id === selectedPoiId ? "selected" : ""}`}>
-                <button className="candidate-select" onClick={() => selectPoi(poi.id)}>
+                <button className="candidate-select" onClick={() => focusPoiOnMap(poi.id)} aria-label={`在地图中查看候选地点 ${poi.name}`}>
                   <span className={`status-badge ${poi.location ? "verified" : "pending"}`}>{poi.location ? "地图可见" : "位置待确认"}</span>
                   <strong>{poi.name}</strong><small>{poi.content.why_visit}</small><span className="candidate-meta">{poi.themes?.join(" · ")} · {poi.content.stay_minutes} 分钟</span>
                 </button>

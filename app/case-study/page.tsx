@@ -28,7 +28,7 @@ export default function CaseStudy() {
     <main className={styles.page}>
       <nav className={styles.nav}>
         <Link href="/" className={styles.brand}><span>青</span> AI Travel Planner</Link>
-        <Link href="/" className={styles.back}>打开交互 Demo ↗</Link>
+        <Link href="/cases/qingtian" className={styles.back}>打开交互 Demo ↗</Link>
       </nav>
 
       <header className={styles.hero}>
@@ -37,7 +37,7 @@ export default function CaseStudy() {
           <h1>从想去的地方，生成<br />真正走得通的旅行</h1>
           <p className={styles.lead}>用卡片了解每个地点，用地图查看真实道路；找到新的候选点后，可以直接加入当天路线并重新规划。</p>
           <div className={styles.heroActions}>
-            <Link href="/">体验三日规划</Link>
+            <Link href="/cases/qingtian">体验三日规划</Link>
             <Link href="/summary" className={styles.secondary}>查看行程摘要</Link>
           </div>
         </div>

@@ -1,5 +1,14 @@
 export type Location = { lng: number; lat: number; coord_system: string } | null;
 
+export type MapView = {
+  center: { lng: number; lat: number };
+  zoom: number;
+  bounds?: {
+    southwest: { lng: number; lat: number };
+    northeast: { lng: number; lat: number };
+  };
+};
+
 export type Verification = {
   status: string;
   verified_at: string | null;
@@ -45,7 +54,7 @@ export type Day = {
 };
 
 export type TripData = {
-  trip: { title: string; city: string; assumptions: string[] };
+  trip: { title: string; city: string; assumptions: string[]; map_view?: MapView };
   pois: Poi[];
   days: Day[];
   quality: {
@@ -57,4 +66,3 @@ export type TripData = {
   };
   provenance: { research_documents?: string[]; updated_at: string };
 };
-

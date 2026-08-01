@@ -10,6 +10,14 @@
     "end_date": null,
     "default_mode": "mixed",
     "daily_window": {"start": "08:00", "end": "20:30"},
+    "map_view": {
+      "center": {"lng": 120.170531, "lat": 28.152208},
+      "zoom": 10,
+      "bounds": {
+        "southwest": {"lng": 119.985, "lat": 27.965},
+        "northeast": {"lng": 120.355, "lat": 28.34}
+      }
+    },
     "hotel_poi_id": null,
     "assumptions": [
       "未指定日期，周一闭馆/店休与季节性项目需要出发前重排",

@@ -1,0 +1,7 @@
+interface:
+  display_name: "AI Travel Planner"
+  short_description: "多源研究、精简 POI 核验与真实路线旅行规划"
+  brand_color: "#1677FF"
+  default_prompt: "Use $ai-travel-planner to compile multi-source destination research, verify only shortlisted AMap POIs, plan adjacent daily routes, and generate card-first travel outputs."
+policy:
+  allow_implicit_invocation: true
