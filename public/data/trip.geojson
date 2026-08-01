@@ -1,0 +1,712 @@
+{
+  "type": "FeatureCollection",
+  "name": "青田三日 · 山水侨乡食游",
+  "properties": {
+    "coordinate_system": "GCJ-02",
+    "warning": "GeoJSON positions may be GCJ-02; convert before treating them as WGS84."
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.288954,
+          28.145076
+        ]
+      },
+      "properties": {
+        "id": "taihe-park",
+        "name": "太鹤公园",
+        "provider": "amap",
+        "provider_poi_id": "B024200C41",
+        "verification_status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.279735,
+          28.137809
+        ]
+      },
+      "properties": {
+        "id": "stone-museum",
+        "name": "青田石雕博物馆",
+        "provider": "amap",
+        "provider_poi_id": "B024201353",
+        "verification_status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.289168,
+          28.137258
+        ]
+      },
+      "properties": {
+        "id": "east-gate-dumpling",
+        "name": "东门饺子馆（少年宫路）",
+        "provider": "amap",
+        "provider_poi_id": "B0FFGZGX7D",
+        "verification_status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.291152,
+          28.135223
+        ]
+      },
+      "properties": {
+        "id": "gongye-coffee",
+        "name": "工页咖啡（涌金街店）",
+        "provider": "amap",
+        "provider_poi_id": "B0FFLA698Z",
+        "verification_status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.290699,
+          28.134283
+        ]
+      },
+      "properties": {
+        "id": "longjin-park",
+        "name": "龙津公园",
+        "provider": "amap",
+        "provider_poi_id": "B024201B81",
+        "verification_status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.290937,
+          28.129675
+        ]
+      },
+      "properties": {
+        "id": "jingyun-bridge",
+        "name": "景云大桥",
+        "provider": "amap",
+        "provider_poi_id": "B0M6VUJ9CU",
+        "verification_status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.289389,
+          28.137267
+        ]
+      },
+      "properties": {
+        "id": "kake",
+        "name": "咔客-Itakake",
+        "provider": "amap",
+        "provider_poi_id": "B0FFHKF2AW",
+        "verification_status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.327292,
+          28.065791
+        ]
+      },
+      "properties": {
+        "id": "qiansi-rock",
+        "name": "千丝岩石文化公园",
+        "provider": "amap",
+        "provider_poi_id": "B02420I2JZ",
+        "verification_status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.321926,
+          28.07118
+        ]
+      },
+      "properties": {
+        "id": "stone-city",
+        "name": "中国石雕城",
+        "provider": "amap",
+        "provider_poi_id": "B02420I2K0",
+        "verification_status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.308049,
+          27.991273
+        ]
+      },
+      "properties": {
+        "id": "fish-village-farm",
+        "name": "田鱼村农庄",
+        "provider": "amap",
+        "provider_poi_id": "B0FFK2VJUW",
+        "verification_status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.318609,
+          28.103851
+        ]
+      },
+      "properties": {
+        "id": "import-market",
+        "name": "青田侨乡进口商品城第一市场",
+        "provider": "amap",
+        "provider_poi_id": "B0FFG23KEQ",
+        "verification_status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.299169,
+          28.128405
+        ]
+      },
+      "properties": {
+        "id": "yufei-coffee",
+        "name": "与非咖啡·续馆",
+        "provider": "amap",
+        "provider_poi_id": "B0FFFX8RDD",
+        "verification_status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.290883,
+          28.134743
+        ]
+      },
+      "properties": {
+        "id": "jiejie-blues",
+        "name": "捷捷蓝调啤酒餐厅",
+        "provider": "amap",
+        "provider_poi_id": "B02420IMNK",
+        "verification_status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.01377,
+          28.082011
+        ]
+      },
+      "properties": {
+        "id": "qianxia-lake",
+        "name": "千峡湖生态旅游度假区",
+        "provider": "amap",
+        "provider_poi_id": "B0FFGG0CQ2",
+        "verification_status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.297814,
+          28.131237
+        ]
+      },
+      "properties": {
+        "id": "xuji-fishball",
+        "name": "徐记鱼丸（塔山店）",
+        "provider": "amap",
+        "provider_poi_id": "B0HDJCUYOF",
+        "verification_status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.289343,
+          28.129815
+        ]
+      },
+      "properties": {
+        "id": "coffee-window",
+        "name": "青田咖啡之窗旅游驿站",
+        "provider": "amap",
+        "provider_poi_id": "B0JKLH5623",
+        "verification_status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.292033,
+          28.13382
+        ]
+      },
+      "properties": {
+        "id": "happy-cafe",
+        "name": "HAPPY幸福咖啡馆",
+        "provider": "amap",
+        "provider_poi_id": "B0H0M1NPWP",
+        "verification_status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.290038,
+          28.134282
+        ]
+      },
+      "properties": {
+        "id": "night-taihe-lake",
+        "name": "夜游太鹤湖",
+        "provider": "amap",
+        "provider_poi_id": "B0L21RU5PV",
+        "verification_status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.121013,
+          28.269486
+        ]
+      },
+      "properties": {
+        "id": "shimen-cave",
+        "name": "石门洞景区",
+        "provider": "amap",
+        "provider_poi_id": "B024200C15",
+        "verification_status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            120.288954,
+            28.145076
+          ],
+          [
+            120.279735,
+            28.137809
+          ]
+        ]
+      },
+      "properties": {
+        "day": 1,
+        "from": "taihe-park",
+        "to": "stone-museum",
+        "mode": "driving",
+        "status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            120.279735,
+            28.137809
+          ],
+          [
+            120.289168,
+            28.137258
+          ]
+        ]
+      },
+      "properties": {
+        "day": 1,
+        "from": "stone-museum",
+        "to": "east-gate-dumpling",
+        "mode": "driving",
+        "status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            120.289168,
+            28.137258
+          ],
+          [
+            120.291152,
+            28.135223
+          ]
+        ]
+      },
+      "properties": {
+        "day": 1,
+        "from": "east-gate-dumpling",
+        "to": "gongye-coffee",
+        "mode": "walking",
+        "status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            120.291152,
+            28.135223
+          ],
+          [
+            120.290699,
+            28.134283
+          ]
+        ]
+      },
+      "properties": {
+        "day": 1,
+        "from": "gongye-coffee",
+        "to": "longjin-park",
+        "mode": "walking",
+        "status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            120.290699,
+            28.134283
+          ],
+          [
+            120.290937,
+            28.129675
+          ]
+        ]
+      },
+      "properties": {
+        "day": 1,
+        "from": "longjin-park",
+        "to": "jingyun-bridge",
+        "mode": "walking",
+        "status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            120.290937,
+            28.129675
+          ],
+          [
+            120.289389,
+            28.137267
+          ]
+        ]
+      },
+      "properties": {
+        "day": 1,
+        "from": "jingyun-bridge",
+        "to": "kake",
+        "mode": "walking",
+        "status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            120.327292,
+            28.065791
+          ],
+          [
+            120.321926,
+            28.07118
+          ]
+        ]
+      },
+      "properties": {
+        "day": 2,
+        "from": "qiansi-rock",
+        "to": "stone-city",
+        "mode": "walking",
+        "status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            120.321926,
+            28.07118
+          ],
+          [
+            120.308049,
+            27.991273
+          ]
+        ]
+      },
+      "properties": {
+        "day": 2,
+        "from": "stone-city",
+        "to": "fish-village-farm",
+        "mode": "driving",
+        "status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            120.308049,
+            27.991273
+          ],
+          [
+            120.318609,
+            28.103851
+          ]
+        ]
+      },
+      "properties": {
+        "day": 2,
+        "from": "fish-village-farm",
+        "to": "import-market",
+        "mode": "driving",
+        "status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            120.318609,
+            28.103851
+          ],
+          [
+            120.299169,
+            28.128405
+          ]
+        ]
+      },
+      "properties": {
+        "day": 2,
+        "from": "import-market",
+        "to": "yufei-coffee",
+        "mode": "driving",
+        "status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            120.299169,
+            28.128405
+          ],
+          [
+            120.290883,
+            28.134743
+          ]
+        ]
+      },
+      "properties": {
+        "day": 2,
+        "from": "yufei-coffee",
+        "to": "jiejie-blues",
+        "mode": "walking",
+        "status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            120.121013,
+            28.269486
+          ],
+          [
+            120.297814,
+            28.131237
+          ]
+        ]
+      },
+      "properties": {
+        "day": 3,
+        "from": "shimen-cave",
+        "to": "xuji-fishball",
+        "mode": "driving",
+        "status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            120.297814,
+            28.131237
+          ],
+          [
+            120.289343,
+            28.129815
+          ]
+        ]
+      },
+      "properties": {
+        "day": 3,
+        "from": "xuji-fishball",
+        "to": "coffee-window",
+        "mode": "walking",
+        "status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            120.289343,
+            28.129815
+          ],
+          [
+            120.292033,
+            28.13382
+          ]
+        ]
+      },
+      "properties": {
+        "day": 3,
+        "from": "coffee-window",
+        "to": "happy-cafe",
+        "mode": "walking",
+        "status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            120.292033,
+            28.13382
+          ],
+          [
+            120.290038,
+            28.134282
+          ]
+        ]
+      },
+      "properties": {
+        "day": 3,
+        "from": "happy-cafe",
+        "to": "night-taihe-lake",
+        "mode": "walking",
+        "status": "verified",
+        "coord_system": "GCJ-02"
+      }
+    }
+  ]
+}

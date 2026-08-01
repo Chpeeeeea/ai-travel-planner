@@ -1,0 +1,258 @@
+{
+  "schema_version": "1.0",
+  "trip": {
+    "id": "qingtian-3d-food-culture",
+    "title": "青田三日 · 山水侨乡食游",
+    "city": "青田县",
+    "timezone": "Asia/Shanghai",
+    "coordinate_system": "GCJ-02",
+    "start_date": null,
+    "end_date": null,
+    "default_mode": "mixed",
+    "daily_window": {"start": "08:00", "end": "20:30"},
+    "hotel_poi_id": null,
+    "assumptions": [
+      "未指定日期，周一闭馆/店休与季节性项目需要出发前重排",
+      "未指定住宿，不虚构酒店锚点；每天从首个活动点开始计算",
+      "千峡湖与乡村段按打车或自驾演示，实际用车方案需确认",
+      "美食是主线，但行程同时覆盖历史、文化与自然风景"
+    ]
+  },
+  "pois": [
+    {
+      "id": "taihe-park", "provider": "amap", "provider_poi_id": "B024200C41", "name": "太鹤公园", "aliases": ["太鹤山公园"], "address": "西门山路", "adcode": "", "typecode": "110101",
+      "location": {"lng": 120.288954, "lat": 28.145076, "coord_system": "GCJ-02"},
+      "business": {"rating": 4.1, "cost": null, "open_hours": "07:00-18:00"}, "photos": [], "themes": ["风景", "历史"],
+      "content": {"why_visit": "从山城高点认识青田城区、瓯江与太鹤山摩崖文化。", "watch_for": ["山城与瓯江关系", "古松与摩崖题刻", "清晨城市全景"], "stay_minutes": 75},
+      "verification": {"status": "verified", "verified_at": "2026-08-01T10:30:00+08:00", "query": "太鹤山公园", "match_confidence": 0.96, "source_url": null}
+    },
+    {
+      "id": "stone-museum", "provider": "amap", "provider_poi_id": "B024201353", "name": "青田石雕博物馆", "aliases": [], "address": "江南大道136-6号", "adcode": "", "typecode": "140100",
+      "location": {"lng": 120.279735, "lat": 28.137809, "coord_system": "GCJ-02"},
+      "business": {"rating": 4.6, "cost": null, "open_hours": "周二至周日 08:30-17:00；周一关闭"}, "photos": [], "themes": ["文化", "历史"],
+      "content": {"why_visit": "用实物理解青田石材、因材施艺与石雕非遗，是整趟旅行的文化底座。", "watch_for": ["封门青等石材", "因色取巧", "传统工具与当代作品"], "stay_minutes": 90},
+      "verification": {"status": "verified", "verified_at": "2026-08-01T10:30:00+08:00", "query": "青田石雕博物馆", "match_confidence": 0.99, "source_url": null}
+    },
+    {
+      "id": "east-gate-dumpling", "provider": "amap", "provider_poi_id": "B0FFGZGX7D", "name": "东门饺子馆（少年宫路）", "aliases": [], "address": "鹤城街道前路街东门小区2幢1单元第一间", "adcode": "", "typecode": "050118",
+      "location": {"lng": 120.289168, "lat": 28.137258, "coord_system": "GCJ-02"},
+      "business": {"rating": 4.5, "cost": 25, "open_hours": "09:00-24:00"}, "photos": [], "themes": ["美食"],
+      "content": {"why_visit": "以山粉饺等本地小吃连接上午文化行程，体量适合午餐。", "watch_for": ["山粉皮口感", "本地快餐节奏"], "stay_minutes": 60},
+      "verification": {"status": "verified", "verified_at": "2026-08-01T10:30:00+08:00", "query": "东门饺子馆", "match_confidence": 0.96, "source_url": null}
+    },
+    {
+      "id": "gongye-coffee", "provider": "amap", "provider_poi_id": "B0FFLA698Z", "name": "工页咖啡（涌金街店）", "aliases": [], "address": "鹤城街道龙东路92号上31号", "adcode": "", "typecode": "050500",
+      "location": {"lng": 120.291152, "lat": 28.135223, "coord_system": "GCJ-02"},
+      "business": {"rating": 4.6, "cost": 36, "open_hours": "10:30-20:30"}, "photos": [], "themes": ["美食", "文化"],
+      "content": {"why_visit": "把侨乡咖啡文化放进真实城市步行线，而不是孤立打卡。", "watch_for": ["本地咖啡消费日常", "豆单与季节饮品"], "stay_minutes": 60},
+      "verification": {"status": "verified", "verified_at": "2026-08-01T10:30:00+08:00", "query": "工页咖啡", "match_confidence": 0.98, "source_url": null}
+    },
+    {
+      "id": "longjin-park", "provider": "amap", "provider_poi_id": "B024201B81", "name": "龙津公园", "aliases": [], "address": "临江东路", "adcode": "", "typecode": "110101",
+      "location": {"lng": 120.290699, "lat": 28.134283, "coord_system": "GCJ-02"},
+      "business": {"rating": 4.2, "cost": null, "open_hours": "24小时"}, "photos": [], "themes": ["风景", "文化"],
+      "content": {"why_visit": "沿瓯江观察青田县城公共生活，并自然衔接景云大桥。", "watch_for": ["滨江步行空间", "本地居民日常", "傍晚江面光线"], "stay_minutes": 50},
+      "verification": {"status": "verified", "verified_at": "2026-08-01T10:30:00+08:00", "query": "龙津公园", "match_confidence": 0.98, "source_url": null}
+    },
+    {
+      "id": "jingyun-bridge", "provider": "amap", "provider_poi_id": "B0M6VUJ9CU", "name": "景云大桥", "aliases": [], "address": "望湖路与伯温东路交叉口东北300米", "adcode": "", "typecode": "110200",
+      "location": {"lng": 120.290937, "lat": 28.129675, "coord_system": "GCJ-02"},
+      "business": {"rating": null, "cost": null, "open_hours": null}, "photos": [], "themes": ["风景"],
+      "content": {"why_visit": "用步行跨江完成城区空间认知，适合日落前后。", "watch_for": ["桥体与山城天际线", "瓯江上下游视野"], "stay_minutes": 35},
+      "verification": {"status": "verified", "verified_at": "2026-08-01T10:30:00+08:00", "query": "景云大桥", "match_confidence": 0.95, "source_url": null}
+    },
+    {
+      "id": "kake", "provider": "amap", "provider_poi_id": "B0FFHKF2AW", "name": "咔客-Itakake", "aliases": [], "address": "鹤城街道东门小区1幢4单元1楼", "adcode": "", "typecode": "050100",
+      "location": {"lng": 120.289389, "lat": 28.137267, "coord_system": "GCJ-02"},
+      "business": {"rating": 4.7, "cost": 92, "open_hours": "周二至周日 11:00-14:00、16:30-20:00"}, "photos": [], "themes": ["美食", "文化"],
+      "content": {"why_visit": "用一顿意餐体验华侨迁移如何改变县城饮食日常。", "watch_for": ["中西食材组合", "县城意餐消费场景"], "stay_minutes": 90},
+      "verification": {"status": "verified", "verified_at": "2026-08-01T10:30:00+08:00", "query": "咔客", "match_confidence": 0.98, "source_url": null}
+    },
+    {
+      "id": "qiansi-rock", "provider": "amap", "provider_poi_id": "B02420I2JZ", "name": "千丝岩石文化公园", "aliases": ["千丝岩景区"], "address": "山口镇永安路168号", "adcode": "", "typecode": "110200",
+      "location": {"lng": 120.327292, "lat": 28.065791, "coord_system": "GCJ-02"},
+      "business": {"rating": 4.1, "cost": null, "open_hours": "08:30-17:00"}, "photos": [], "themes": ["风景", "文化"],
+      "content": {"why_visit": "在原产地环境中把山水、石材与石雕文化接起来。", "watch_for": ["瀑布与岩壁", "石文化景观", "山口镇空间"], "stay_minutes": 120},
+      "verification": {"status": "verified", "verified_at": "2026-08-01T10:30:00+08:00", "query": "千丝岩景区", "match_confidence": 0.96, "source_url": null}
+    },
+    {
+      "id": "stone-city", "provider": "amap", "provider_poi_id": "B02420I2K0", "name": "中国石雕城", "aliases": [], "address": "金石路与230省道交叉口南60米", "adcode": "", "typecode": "060603",
+      "location": {"lng": 120.321926, "lat": 28.071180, "coord_system": "GCJ-02"},
+      "business": {"rating": 4.2, "cost": null, "open_hours": "08:00-17:30"}, "photos": [], "themes": ["文化", "购物"],
+      "content": {"why_visit": "从博物馆里的艺术史走到仍在运转的石雕交易与工艺生态。", "watch_for": ["原石与成品差异", "工艺题材", "交易市场尺度"], "stay_minutes": 60},
+      "verification": {"status": "verified", "verified_at": "2026-08-01T10:30:00+08:00", "query": "中国青田石雕城", "match_confidence": 0.97, "source_url": null}
+    },
+    {
+      "id": "fish-village-farm", "provider": "amap", "provider_poi_id": "B0FFK2VJUW", "name": "田鱼村农庄", "aliases": [], "address": "方山乡龙现村党群服务中心南侧", "adcode": "", "typecode": "050000",
+      "location": {"lng": 120.308049, "lat": 27.991273, "coord_system": "GCJ-02"},
+      "business": {"rating": 4.5, "cost": null, "open_hours": null}, "photos": [], "themes": ["美食", "文化"],
+      "content": {"why_visit": "把田鱼从一道菜还原为稻鱼共生文化的一部分。", "watch_for": ["田鱼做法", "村落与稻田关系", "农家菜搭配"], "stay_minutes": 90},
+      "verification": {"status": "verified", "verified_at": "2026-08-01T10:30:00+08:00", "query": "青田田鱼", "match_confidence": 0.91, "source_url": null}
+    },
+    {
+      "id": "import-market", "provider": "amap", "provider_poi_id": "B0FFG23KEQ", "name": "青田侨乡进口商品城第一市场", "aliases": [], "address": "石锦路160号", "adcode": "", "typecode": "060000",
+      "location": {"lng": 120.318609, "lat": 28.103851, "coord_system": "GCJ-02"},
+      "business": {"rating": 4.6, "cost": null, "open_hours": "09:00-18:00"}, "photos": [], "themes": ["文化", "购物", "美食"],
+      "content": {"why_visit": "观察华侨网络如何进入县城的进口食品与日常消费。", "watch_for": ["商品来源国", "红酒与火腿", "侨乡消费结构"], "stay_minutes": 60},
+      "verification": {"status": "verified", "verified_at": "2026-08-01T10:30:00+08:00", "query": "侨乡进口商品城", "match_confidence": 0.95, "source_url": null}
+    },
+    {
+      "id": "yufei-coffee", "provider": "amap", "provider_poi_id": "B0FFFX8RDD", "name": "与非咖啡·续馆", "aliases": [], "address": "鹤城街道临江东路153号", "adcode": "", "typecode": "050500",
+      "location": {"lng": 120.299169, "lat": 28.128405, "coord_system": "GCJ-02"},
+      "business": {"rating": 4.7, "cost": 40, "open_hours": "08:00-22:00"}, "photos": [], "themes": ["美食", "文化"],
+      "content": {"why_visit": "远郊返城后的休息点，也让一天从石文化转回当代侨乡生活。", "watch_for": ["本地咖啡社交", "烘焙与豆单"], "stay_minutes": 60},
+      "verification": {"status": "verified", "verified_at": "2026-08-01T10:30:00+08:00", "query": "与非咖啡", "match_confidence": 0.97, "source_url": null}
+    },
+    {
+      "id": "jiejie-blues", "provider": "amap", "provider_poi_id": "B02420IMNK", "name": "捷捷蓝调啤酒餐厅", "aliases": [], "address": "临江东路34-36号", "adcode": "", "typecode": "050100",
+      "location": {"lng": 120.290883, "lat": 28.134743, "coord_system": "GCJ-02"},
+      "business": {"rating": 4.5, "cost": 93, "open_hours": "周一09:00-01:00；周二至周日09:00-01:30"}, "photos": [], "themes": ["美食", "夜生活"],
+      "content": {"why_visit": "用江边小酒馆结束石雕与田鱼主题日。", "watch_for": ["江边夜生活", "本地与西式菜单并置"], "stay_minutes": 90},
+      "verification": {"status": "verified", "verified_at": "2026-08-01T10:30:00+08:00", "query": "捷捷蓝调", "match_confidence": 0.98, "source_url": null}
+    },
+    {
+      "id": "qianxia-lake", "provider": "amap", "provider_poi_id": "B0FFGG0CQ2", "name": "千峡湖生态旅游度假区", "aliases": [], "address": "青景庆线附近", "adcode": "", "typecode": "110200",
+      "location": {"lng": 120.013770, "lat": 28.082011, "coord_system": "GCJ-02"},
+      "business": {"rating": 4.6, "cost": null, "open_hours": "24小时"}, "photos": [], "themes": ["风景"],
+      "content": {"why_visit": "用半日远郊风景补足青田不只有县城与咖啡的自然维度。", "watch_for": ["峡湾湖地形", "环湖公路视角", "服务设施稀疏程度"], "stay_minutes": 210},
+      "verification": {"status": "verified", "verified_at": "2026-08-01T10:30:00+08:00", "query": "千峡湖", "match_confidence": 0.96, "source_url": null}
+    },
+    {
+      "id": "xuji-fishball", "provider": "amap", "provider_poi_id": "B0HDJCUYOF", "name": "徐记鱼丸（塔山店）", "aliases": [], "address": "鹤城街道塔山路103号", "adcode": "", "typecode": "050000",
+      "location": {"lng": 120.297814, "lat": 28.131237, "coord_system": "GCJ-02"},
+      "business": {"rating": 4.5, "cost": 25, "open_hours": "06:00-23:00"}, "photos": [], "themes": ["美食"],
+      "content": {"why_visit": "从远郊返城后用鱼丸、山粉饺等完成一顿轻量本地午餐。", "watch_for": ["鱼丸口感", "本地早餐与简餐组合"], "stay_minutes": 60},
+      "verification": {"status": "verified", "verified_at": "2026-08-01T10:30:00+08:00", "query": "徐记鱼丸", "match_confidence": 0.98, "source_url": null}
+    },
+    {
+      "id": "coffee-window", "provider": "amap", "provider_poi_id": "B0JKLH5623", "name": "青田咖啡之窗旅游驿站", "aliases": [], "address": "江南大道331号", "adcode": "", "typecode": "050000",
+      "location": {"lng": 120.289343, "lat": 28.129815, "coord_system": "GCJ-02"},
+      "business": {"rating": 4.6, "cost": 37, "open_hours": "09:00-23:00"}, "photos": [], "themes": ["美食", "文化"],
+      "content": {"why_visit": "把咖啡作为青田城市名片集中理解，并为下午步行恢复体力。", "watch_for": ["咖啡城市叙事", "旅游驿站信息"], "stay_minutes": 60},
+      "verification": {"status": "verified", "verified_at": "2026-08-01T10:30:00+08:00", "query": "青田咖啡之窗", "match_confidence": 0.96, "source_url": null}
+    },
+    {
+      "id": "happy-cafe", "provider": "amap", "provider_poi_id": "B0H0M1NPWP", "name": "HAPPY幸福咖啡馆", "aliases": ["幸福咖啡馆"], "address": "鸣山路5号", "adcode": "", "typecode": "050500",
+      "location": {"lng": 120.292033, "lat": 28.133820, "coord_system": "GCJ-02"},
+      "business": {"rating": 4.7, "cost": 114, "open_hours": "09:30-21:30"}, "photos": [], "themes": ["美食", "文化"],
+      "content": {"why_visit": "以较完整的西餐体验收束三天中西融合饮食主线。", "watch_for": ["侨乡西餐日常化", "菜单与本地客群"], "stay_minutes": 90},
+      "verification": {"status": "verified", "verified_at": "2026-08-01T10:30:00+08:00", "query": "幸福咖啡馆", "match_confidence": 0.97, "source_url": null}
+    },
+    {
+      "id": "night-taihe-lake", "provider": "amap", "provider_poi_id": "B0L21RU5PV", "name": "夜游太鹤湖", "aliases": [], "address": "临江东路34号", "adcode": "", "typecode": "110200",
+      "location": {"lng": 120.290038, "lat": 28.134282, "coord_system": "GCJ-02"},
+      "business": {"rating": 4.2, "cost": null, "open_hours": "高德仅显示部分日期17:00-20:30"}, "photos": [], "themes": ["风景", "夜生活"],
+      "content": {"why_visit": "作为可选夜间收尾，从水面重新观看山城与滨江灯光。", "watch_for": ["夜间山城轮廓", "瓯江水面视角"], "stay_minutes": 80},
+      "verification": {"status": "verified", "verified_at": "2026-08-01T10:30:00+08:00", "query": "太鹤湖夜游", "match_confidence": 0.91, "source_url": null}
+    },
+    {
+      "id": "shimen-cave", "provider": "amap", "provider_poi_id": "B024200C15", "name": "石门洞景区", "aliases": [], "address": "伯温古村43号", "adcode": "", "typecode": "110203",
+      "location": {"lng": 120.121013, "lat": 28.269486, "coord_system": "GCJ-02"},
+      "business": {"rating": 4.6, "cost": null, "open_hours": "08:00-16:30"}, "photos": [], "themes": ["历史", "风景"],
+      "content": {"why_visit": "山水、摩崖题刻、谢灵运游踪和刘基求学文化集中，适合作为千峡湖的历史型替代日。", "watch_for": ["摩崖题刻", "瀑布与瓯江山水", "刘基求学叙事"], "stay_minutes": 210},
+      "verification": {"status": "verified", "verified_at": "2026-08-01T10:30:00+08:00", "query": "石门洞景区", "match_confidence": 0.97, "source_url": null}
+    },
+    {
+      "id": "overseas-history-hall", "provider": "research", "provider_poi_id": null, "name": "青田华侨历史陈列馆", "aliases": [], "address": "待高德消歧", "adcode": "", "typecode": "140000", "location": null,
+      "business": {"rating": null, "cost": null, "open_hours": null}, "photos": [], "themes": ["历史", "文化"],
+      "content": {"why_visit": "最直接解释咖啡、西餐、进口商品背后的移民与侨乡历史。", "watch_for": ["迁移路线", "侨批与家庭记忆", "海外餐饮业联系"], "stay_minutes": 90},
+      "verification": {"status": "needs_confirmation", "verified_at": null, "query": "青田华侨历史陈列馆", "match_confidence": null, "source_url": null}
+    },
+    {
+      "id": "zhang-naiqi-hall", "provider": "research", "provider_poi_id": null, "name": "章乃器生平事迹陈列馆", "aliases": [], "address": "待高德核验", "adcode": "", "typecode": "140000", "location": null,
+      "business": {"rating": null, "cost": null, "open_hours": null}, "photos": [], "themes": ["历史"],
+      "content": {"why_visit": "提供青田近现代人物史的一条完整支线。", "watch_for": ["人物生平", "近现代社会网络"], "stay_minutes": 75},
+      "verification": {"status": "candidate", "verified_at": null, "query": "章乃器生平事迹陈列馆", "match_confidence": null, "source_url": null}
+    },
+    {
+      "id": "rice-fish-museum", "provider": "research", "provider_poi_id": null, "name": "青田稻鱼共生系统博物馆", "aliases": [], "address": "龙现村一带，待高德核验", "adcode": "", "typecode": "140000", "location": null,
+      "business": {"rating": null, "cost": null, "open_hours": null}, "photos": [], "themes": ["文化", "美食"],
+      "content": {"why_visit": "把田鱼午餐前置为农业文化体验，而不只是一顿饭。", "watch_for": ["稻鱼共生机制", "农遗景观", "季节变化"], "stay_minutes": 75},
+      "verification": {"status": "candidate", "verified_at": null, "query": "青田稻鱼共生系统博物馆", "match_confidence": null, "source_url": null}
+    }
+  ],
+  "days": [
+    {
+      "id": "day-1", "day_number": 1, "date": null, "title": "山城初见 · 石雕与瓯江", "window": {"start": "08:00", "end": "19:00"}, "start_anchor_poi_id": null, "end_anchor_poi_id": null,
+      "assignments": [
+        {"poi_id": "taihe-park", "order_index": 0, "arrival_time": "08:00", "departure_time": "09:15", "locked": false, "notes": "清晨登高"},
+        {"poi_id": "stone-museum", "order_index": 1, "arrival_time": "09:35", "departure_time": "11:05", "locked": false, "notes": "周一需替换"},
+        {"poi_id": "east-gate-dumpling", "order_index": 2, "arrival_time": "11:20", "departure_time": "12:20", "locked": false, "notes": "本地小吃午餐"},
+        {"poi_id": "gongye-coffee", "order_index": 3, "arrival_time": "12:35", "departure_time": "13:35", "locked": false, "notes": "只选一家主咖啡店"},
+        {"poi_id": "longjin-park", "order_index": 4, "arrival_time": "14:00", "departure_time": "14:50", "locked": false, "notes": "滨江慢走"},
+        {"poi_id": "jingyun-bridge", "order_index": 5, "arrival_time": "15:10", "departure_time": "15:45", "locked": false, "notes": "看瓯江与山城"},
+        {"poi_id": "kake", "order_index": 6, "arrival_time": "17:00", "departure_time": "18:30", "locked": false, "notes": "周一店休，日期确定后调整"}
+      ],
+      "route_segments": [
+        {"from_poi_id": "taihe-park", "to_poi_id": "stone-museum", "mode": "driving", "provider": "amap-mcp", "distance_m": 4005, "duration_s": 825, "geometry": [], "status": "verified", "verified_at": "2026-08-01T10:45:00+08:00", "summary": "约4.0公里，驾车约14分钟"},
+        {"from_poi_id": "stone-museum", "to_poi_id": "east-gate-dumpling", "mode": "driving", "provider": "amap-mcp", "distance_m": 1850, "duration_s": 410, "geometry": [], "status": "verified", "verified_at": "2026-08-01T10:45:00+08:00", "summary": "约1.9公里，驾车约7分钟"},
+        {"from_poi_id": "east-gate-dumpling", "to_poi_id": "gongye-coffee", "mode": "walking", "provider": "amap-mcp", "distance_m": 599, "duration_s": 479, "geometry": [], "status": "verified", "verified_at": "2026-08-01T10:45:00+08:00", "summary": "约599米，步行约8分钟"},
+        {"from_poi_id": "gongye-coffee", "to_poi_id": "longjin-park", "mode": "walking", "provider": "amap-mcp", "distance_m": 1032, "duration_s": 826, "geometry": [], "status": "verified", "verified_at": "2026-08-01T10:45:00+08:00", "summary": "约1.0公里，步行约14分钟"},
+        {"from_poi_id": "longjin-park", "to_poi_id": "jingyun-bridge", "mode": "walking", "provider": "amap-mcp", "distance_m": 1141, "duration_s": 913, "geometry": [], "status": "verified", "verified_at": "2026-08-01T10:45:00+08:00", "summary": "约1.1公里，步行约15分钟"},
+        {"from_poi_id": "jingyun-bridge", "to_poi_id": "kake", "mode": "walking", "provider": "amap-mcp", "distance_m": 1152, "duration_s": 922, "geometry": [], "status": "verified", "verified_at": "2026-08-01T10:45:00+08:00", "summary": "约1.2公里，步行约15分钟"}
+      ]
+    },
+    {
+      "id": "day-2", "day_number": 2, "date": null, "title": "石头从山里来 · 田鱼与侨味", "window": {"start": "08:30", "end": "19:30"}, "start_anchor_poi_id": null, "end_anchor_poi_id": null,
+      "assignments": [
+        {"poi_id": "qiansi-rock", "order_index": 0, "arrival_time": "08:30", "departure_time": "10:30", "locked": false, "notes": "山口镇石文化"},
+        {"poi_id": "stone-city", "order_index": 1, "arrival_time": "10:50", "departure_time": "11:50", "locked": false, "notes": "看真实产业生态"},
+        {"poi_id": "fish-village-farm", "order_index": 2, "arrival_time": "12:20", "departure_time": "13:50", "locked": false, "notes": "需提前确认营业"},
+        {"poi_id": "import-market", "order_index": 3, "arrival_time": "14:30", "departure_time": "15:30", "locked": false, "notes": "伴手礼与侨乡消费"},
+        {"poi_id": "yufei-coffee", "order_index": 4, "arrival_time": "16:00", "departure_time": "17:00", "locked": false, "notes": "返城休息"},
+        {"poi_id": "jiejie-blues", "order_index": 5, "arrival_time": "17:30", "departure_time": "19:00", "locked": false, "notes": "江边晚餐"}
+      ],
+      "route_segments": [
+        {"from_poi_id": "qiansi-rock", "to_poi_id": "stone-city", "mode": "walking", "provider": "amap-mcp", "distance_m": 1175, "duration_s": 940, "geometry": [], "status": "verified", "verified_at": "2026-08-01T10:45:00+08:00", "summary": "约1.2公里，步行约16分钟"},
+        {"from_poi_id": "stone-city", "to_poi_id": "fish-village-farm", "mode": "driving", "provider": "amap-mcp", "distance_m": 11090, "duration_s": 1086, "geometry": [], "status": "verified", "verified_at": "2026-08-01T10:45:00+08:00", "summary": "约11.1公里，驾车约18分钟"},
+        {"from_poi_id": "fish-village-farm", "to_poi_id": "import-market", "mode": "driving", "provider": "amap-mcp", "distance_m": 15303, "duration_s": 1506, "geometry": [], "status": "verified", "verified_at": "2026-08-01T10:45:00+08:00", "summary": "约15.3公里，驾车约25分钟"},
+        {"from_poi_id": "import-market", "to_poi_id": "yufei-coffee", "mode": "driving", "provider": "amap-mcp", "distance_m": 3776, "duration_s": 419, "geometry": [], "status": "verified", "verified_at": "2026-08-01T10:45:00+08:00", "summary": "约3.8公里，驾车约7分钟"},
+        {"from_poi_id": "yufei-coffee", "to_poi_id": "jiejie-blues", "mode": "walking", "provider": "amap-mcp", "distance_m": 1261, "duration_s": 1009, "geometry": [], "status": "verified", "verified_at": "2026-08-01T10:45:00+08:00", "summary": "约1.3公里，步行约17分钟"}
+      ]
+    },
+    {
+      "id": "day-3", "day_number": 3, "date": null, "title": "石门山水与县城夜色", "window": {"start": "08:00", "end": "20:30"}, "start_anchor_poi_id": null, "end_anchor_poi_id": null,
+      "assignments": [
+        {"poi_id": "shimen-cave", "order_index": 0, "arrival_time": "08:00", "departure_time": "12:00", "locked": false, "notes": "摩崖、飞瀑、刘基求学文化；建议打车或包车"},
+        {"poi_id": "xuji-fishball", "order_index": 1, "arrival_time": "12:50", "departure_time": "13:50", "locked": false, "notes": "返城午餐"},
+        {"poi_id": "coffee-window", "order_index": 2, "arrival_time": "14:30", "departure_time": "15:30", "locked": false, "notes": "咖啡城市名片"},
+        {"poi_id": "happy-cafe", "order_index": 3, "arrival_time": "17:00", "departure_time": "18:30", "locked": false, "notes": "建议预约"},
+        {"poi_id": "night-taihe-lake", "order_index": 4, "arrival_time": "18:40", "departure_time": "20:00", "locked": false, "notes": "季节性可选，必须临行确认"}
+      ],
+      "route_segments": [
+        {"from_poi_id": "shimen-cave", "to_poi_id": "xuji-fishball", "mode": "driving", "provider": "amap-mcp", "distance_m": 30133, "duration_s": 2360, "geometry": [], "status": "verified", "verified_at": "2026-08-01T11:10:00+08:00", "summary": "约30.1公里，驾车约39分钟"},
+        {"from_poi_id": "xuji-fishball", "to_poi_id": "coffee-window", "mode": "walking", "provider": "amap-mcp", "distance_m": 1731, "duration_s": 1385, "geometry": [], "status": "verified", "verified_at": "2026-08-01T10:45:00+08:00", "summary": "约1.7公里，步行约23分钟"},
+        {"from_poi_id": "coffee-window", "to_poi_id": "happy-cafe", "mode": "walking", "provider": "amap-mcp", "distance_m": 1328, "duration_s": 1062, "geometry": [], "status": "verified", "verified_at": "2026-08-01T10:45:00+08:00", "summary": "约1.3公里，步行约18分钟"},
+        {"from_poi_id": "happy-cafe", "to_poi_id": "night-taihe-lake", "mode": "walking", "provider": "amap-mcp", "distance_m": 298, "duration_s": 238, "geometry": [], "status": "verified", "verified_at": "2026-08-01T10:45:00+08:00", "summary": "约298米，步行约4分钟"}
+      ]
+    }
+  ],
+  "provenance": {
+    "research_sources": [
+      {"platform": "xiaohongshu", "title": "青田J人土著3天2晚行程（纯吃版）", "url": "https://www.xiaohongshu.com/search_result/6a191f830000000007027d7f", "opened": true},
+      {"platform": "xiaohongshu", "title": "青田市区一日游（小欧洲文艺一日）", "url": "https://www.xiaohongshu.com/search_result/6a486b380000000008031987", "opened": true},
+      {"platform": "xiaohongshu", "title": "青田 你不宣传千峡湖真是糊涂啊", "url": "https://www.xiaohongshu.com/search_result/6a26d08d000000000800377c", "opened": true},
+      {"platform": "official", "title": "侨乡青田引客入青文旅报道", "url": "https://www.gqb.gov.cn/news/2026/0410/61962.shtml", "opened": true},
+      {"platform": "official", "title": "青田县全域旅游发展规划", "url": "https://zjjcmspublic.oss-cn-hangzhou-zwynet-d01-a.internet.cloud.zj.gov.cn/jcms_files/jcms1/web3660/site/attach/0/c06db2bcb8414401b1df042d486c3b85.pdf", "opened": true}
+    ],
+    "research_documents": ["01-青田历史.md", "02-青田文化.md", "03-青田风景.md", "04-青田美食.md"],
+    "poi_provider": "amap-mcp",
+    "route_provider": "amap-mcp",
+    "generated_at": "2026-08-01T10:50:00+08:00",
+    "updated_at": "2026-08-01T10:50:00+08:00"
+  },
+  "quality": {
+    "status": "draft",
+    "warnings": [
+      "日期未定：青田石雕博物馆与咔客的周一关闭规则需要排程时处理",
+      "田鱼村农庄缺稳定营业时间，必须提前电话确认",
+      "夜游太鹤湖显示季节性营业信息，只作为可选项",
+      "千峡湖保留为自驾整日备选；建设、游船、山路与补给条件需临行核查",
+      "3 个研究候选仍待高德消歧，未进入正式日程"
+    ],
+    "unverified_poi_count": 3,
+    "pending_route_count": 0,
+    "verified_poi_count": 19,
+    "verified_route_count": 15
+  }
+}
