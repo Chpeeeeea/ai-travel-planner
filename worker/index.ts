@@ -5,6 +5,8 @@ import handler from "vinext/server/app-router-entry";
 interface Env {
   ASSETS: Fetcher;
   DB: D1Database;
+  AMAP_JSAPI_KEY?: string;
+  AMAP_SECURITY_JS_CODE?: string;
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -28,6 +30,23 @@ interface ExecutionContext {
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+
+    if (url.pathname === "/api/amap-config") {
+      return Response.json(
+        env.AMAP_JSAPI_KEY ? { key: env.AMAP_JSAPI_KEY } : { key: null },
+        { status: env.AMAP_JSAPI_KEY ? 200 : 503, headers: { "Cache-Control": "public, max-age=300" } },
+      );
+    }
+
+    if (url.pathname.startsWith("/_AMapService/")) {
+      if (!env.AMAP_SECURITY_JS_CODE) return new Response("AMap proxy is not configured", { status: 503 });
+      const target = new URL(`https://restapi.amap.com/${url.pathname.slice("/_AMapService/".length)}`);
+      url.searchParams.forEach((value, key) => target.searchParams.append(key, value));
+      target.searchParams.set("jscode", env.AMAP_SECURITY_JS_CODE);
+      const headers = new Headers(request.headers);
+      headers.delete("host");
+      return fetch(new Request(target, { method: request.method, headers, body: request.body, redirect: "follow" }));
+    }
 
     if (url.pathname === "/_vinext/image") {
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];

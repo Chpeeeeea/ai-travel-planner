@@ -1,0 +1,214 @@
+"use client";
+/* eslint-disable @typescript-eslint/no-explicit-any -- AMap JSAPI is loaded dynamically and has no bundled project types. */
+
+import { useEffect, useRef, useState } from "react";
+import type { Poi, Segment } from "./travelTypes";
+
+declare global {
+  interface Window {
+    AMap?: any;
+    _AMapSecurityConfig?: { serviceHost: string };
+  }
+}
+
+type RouteSummary = { distance: number; duration: number; complete: boolean };
+type Props = {
+  dayPois: Poi[];
+  candidatePois: Poi[];
+  segments: Segment[];
+  selectedPoiId: string;
+  color: string;
+  revision: number;
+  onSelect: (poiId: string) => void;
+  onRouteSummary: (summary: RouteSummary) => void;
+};
+
+let loaderPromise: Promise<any> | null = null;
+
+async function loadAmap() {
+  if (window.AMap) return window.AMap;
+  if (loaderPromise) return loaderPromise;
+  loaderPromise = fetch("/api/amap-config")
+    .then(async (response) => {
+      if (!response.ok) throw new Error("地图服务尚未配置");
+      const config = await response.json() as { key?: string };
+      if (!config.key) throw new Error("地图服务尚未配置");
+      window._AMapSecurityConfig = { serviceHost: `${window.location.origin}/_AMapService` };
+      return new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = `https://webapi.amap.com/maps?v=2.0&key=${encodeURIComponent(config.key!)}`;
+        script.async = true;
+        script.onload = () => resolve(window.AMap);
+        script.onerror = () => reject(new Error("高德地图加载失败"));
+        document.head.appendChild(script);
+      });
+    })
+    .catch((error) => {
+      loaderPromise = null;
+      throw error;
+    });
+  return loaderPromise;
+}
+
+function routeMode(from: Poi, to: Poi, segments: Segment[]) {
+  const known = segments.find((item) => item.from_poi_id === from.id && item.to_poi_id === to.id)?.mode;
+  if (known === "walking" || known === "driving") return known;
+  if (!from.location || !to.location) return "driving";
+  const dx = (from.location.lng - to.location.lng) * 100;
+  const dy = (from.location.lat - to.location.lat) * 111;
+  return Math.hypot(dx, dy) < 2.2 ? "walking" : "driving";
+}
+
+function searchRoute(AMap: any, mode: string, from: Poi, to: Poi) {
+  return new Promise<{ path: any[]; distance: number; duration: number } | null>((resolve) => {
+    const Service = mode === "walking" ? AMap.Walking : AMap.Driving;
+    const service = new Service({ policy: 0, hideMarkers: true, autoFitView: false });
+    service.search(
+      [from.location!.lng, from.location!.lat],
+      [to.location!.lng, to.location!.lat],
+      (status: string, result: any) => {
+        if (status !== "complete" || !result?.routes?.[0]) return resolve(null);
+        const route = result.routes[0];
+        const path = (route.steps ?? []).flatMap((step: any) => step.path ?? []);
+        resolve({ path, distance: Number(route.distance ?? 0), duration: Number(route.time ?? 0) });
+      },
+    );
+  });
+}
+
+export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiId, color, revision, onSelect, onRouteSummary }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<any>(null);
+  const overlaysRef = useRef<any[]>([]);
+  const [mapReady, setMapReady] = useState(false);
+  const [routeState, setRouteState] = useState<"loading" | "ready" | "drawing" | "error">("loading");
+  const [message, setMessage] = useState("正在加载真实道路地图…");
+
+  useEffect(() => {
+    let cancelled = false;
+    loadAmap()
+      .then((AMap) => {
+        if (cancelled || !containerRef.current) return;
+        mapRef.current = new AMap.Map(containerRef.current, {
+          zoom: 11,
+          center: [120.286, 28.135],
+          viewMode: "2D",
+          mapStyle: "amap://styles/whitesmoke",
+        });
+        AMap.plugin("AMap.ToolBar", () => mapRef.current?.addControl(new AMap.ToolBar({ position: "RB" })));
+        setMapReady(true);
+        setRouteState("ready");
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setRouteState("error");
+          setMessage(error instanceof Error ? error.message : "地图服务暂时不可用");
+        }
+      });
+    return () => {
+      cancelled = true;
+      mapRef.current?.destroy();
+      mapRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !window.AMap) return;
+    let cancelled = false;
+    const AMap = window.AMap;
+    const map = mapRef.current;
+    map.remove(overlaysRef.current);
+    overlaysRef.current = [];
+    setRouteState("drawing");
+    setMessage("正在按当前顺序计算真实道路…");
+
+    const dayMarkers = dayPois.filter((poi) => poi.location).map((poi, index) => {
+      const marker = new AMap.Marker({
+        position: [poi.location!.lng, poi.location!.lat],
+        title: poi.name,
+        zIndex: 160,
+        content: `<button class="amap-product-marker" data-poi-id="${poi.id}" style="--marker:${color}" aria-label="${poi.name}">${index + 1}</button>`,
+        offset: new AMap.Pixel(-17, -17),
+      });
+      marker.on("click", () => onSelect(poi.id));
+      return marker;
+    });
+
+    const candidateMarkers = candidatePois.filter((poi) => poi.location).map((poi) => {
+      const marker = new AMap.Marker({
+        position: [poi.location!.lng, poi.location!.lat],
+        title: `候选：${poi.name}`,
+        zIndex: 110,
+        content: `<button class="amap-candidate-marker" data-poi-id="${poi.id}" aria-label="候选地点 ${poi.name}">＋</button>`,
+        offset: new AMap.Pixel(-15, -15),
+      });
+      marker.on("click", () => onSelect(poi.id));
+      return marker;
+    });
+
+    const markers = [...dayMarkers, ...candidateMarkers];
+    map.add(markers);
+    overlaysRef.current = markers;
+
+    AMap.plugin(["AMap.Driving", "AMap.Walking"], async () => {
+      let distance = 0;
+      let duration = 0;
+      let complete = true;
+      const lines: any[] = [];
+
+      for (let index = 0; index < dayPois.length - 1; index += 1) {
+        if (cancelled) return;
+        const from = dayPois[index];
+        const to = dayPois[index + 1];
+        if (!from.location || !to.location) continue;
+        const result = await searchRoute(AMap, routeMode(from, to, segments), from, to);
+        const path = result?.path?.length ? result.path : [
+          [from.location.lng, from.location.lat],
+          [to.location.lng, to.location.lat],
+        ];
+        if (result) {
+          distance += result.distance;
+          duration += result.duration;
+        } else {
+          complete = false;
+        }
+        lines.push(new AMap.Polyline({
+          path,
+          strokeColor: color,
+          strokeWeight: 6,
+          strokeOpacity: .88,
+          strokeStyle: result ? "solid" : "dashed",
+          lineJoin: "round",
+          lineCap: "round",
+          showDir: true,
+          zIndex: 120,
+        }));
+      }
+
+      if (cancelled) return;
+      map.add(lines);
+      overlaysRef.current = [...markers, ...lines];
+      if (overlaysRef.current.length) map.setFitView(overlaysRef.current, false, [72, 72, 72, 72], 16);
+      onRouteSummary({ distance, duration, complete });
+      setRouteState("ready");
+      setMessage(complete ? "真实道路已刷新" : "部分路段暂时无法计算");
+    });
+
+    return () => { cancelled = true; };
+  }, [candidatePois, color, dayPois, mapReady, onRouteSummary, onSelect, revision, segments]);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    containerRef.current.querySelectorAll<HTMLElement>("[data-poi-id]").forEach((node) => {
+      node.classList.toggle("is-selected", node.dataset.poiId === selectedPoiId);
+    });
+  }, [mapReady, revision, selectedPoiId]);
+
+  return (
+    <div className="amap-shell">
+      <div ref={containerRef} className="amap-container" aria-label="高德真实道路地图" />
+      <div className={`map-service-state ${routeState}`}><i />{message}</div>
+      <div className="candidate-map-legend"><span>● 行程</span><span>＋ 可加入候选点</span></div>
+    </div>
+  );
+}

@@ -14,6 +14,10 @@ const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 const localBindingConfig = {
   main: "./worker/index.ts",
   compatibility_flags: ["nodejs_compat"],
+  vars: {
+    AMAP_JSAPI_KEY: process.env.AMAP_JSAPI_KEY ?? "",
+    AMAP_SECURITY_JS_CODE: process.env.AMAP_SECURITY_JS_CODE ?? "",
+  },
   d1_databases: d1
     ? [
         {
