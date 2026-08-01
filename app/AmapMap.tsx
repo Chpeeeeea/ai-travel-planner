@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- AMap JSAPI is loaded dynamically and has no bundled project types. */
 
 import { useEffect, useRef, useState } from "react";
-import type { Poi, Segment } from "./travelTypes";
+import type { MapView, Poi, Segment } from "./travelTypes";
 
 declare global {
   interface Window {
@@ -20,6 +20,7 @@ type Props = {
   selectedPoiId: string;
   color: string;
   revision: number;
+  researchArea?: MapView;
   onSelect: (poiId: string) => void;
   onRouteSummary: (summary: RouteSummary) => void;
 };
@@ -77,11 +78,12 @@ function searchRoute(AMap: any, mode: string, from: Poi, to: Poi) {
   });
 }
 
-export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiId, color, revision, onSelect, onRouteSummary }: Props) {
+export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiId, color, revision, researchArea, onSelect, onRouteSummary }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const baseLayersRef = useRef<{ road: any; satellite: any; roadNet: any } | null>(null);
   const overlaysRef = useRef<any[]>([]);
+  const initialViewportAppliedRef = useRef(false);
   const [mapReady, setMapReady] = useState(false);
   const [layerMode, setLayerMode] = useState<MapLayerMode>("road");
   const [routeState, setRouteState] = useState<"loading" | "ready" | "drawing" | "error">("loading");
@@ -97,9 +99,10 @@ export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiI
         const roadNet = new AMap.TileLayer.RoadNet({ zooms: [3, 20] });
         baseLayersRef.current = { road, satellite, roadNet };
         mapRef.current = new AMap.Map(containerRef.current, {
-          zoom: 11,
-          center: [120.286, 28.135],
+          zoom: researchArea?.zoom ?? 11,
+          center: researchArea ? [researchArea.center.lng, researchArea.center.lat] : [120.286, 28.135],
           viewMode: "2D",
+          resizeEnable: true,
           layers: [road],
           mapStyle: "amap://styles/whitesmoke",
         });
@@ -119,7 +122,7 @@ export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiI
       mapRef.current = null;
       baseLayersRef.current = null;
     };
-  }, []);
+  }, [researchArea]);
 
   useEffect(() => {
     if (!mapReady || !mapRef.current || !baseLayersRef.current) return;
@@ -203,14 +206,24 @@ export default function AmapMap({ dayPois, candidatePois, segments, selectedPoiI
       if (cancelled) return;
       map.add(lines);
       overlaysRef.current = [...markers, ...lines];
-      if (overlaysRef.current.length) map.setFitView(overlaysRef.current, false, [72, 72, 72, 72], 16);
+      const routeOverlays = [...dayMarkers, ...lines];
+      if (!initialViewportAppliedRef.current && researchArea?.bounds) {
+        const bounds = new AMap.Bounds(
+          [researchArea.bounds.southwest.lng, researchArea.bounds.southwest.lat],
+          [researchArea.bounds.northeast.lng, researchArea.bounds.northeast.lat],
+        );
+        map.setBounds(bounds, false, [56, 56, 56, 56]);
+        initialViewportAppliedRef.current = true;
+      } else if (routeOverlays.length) {
+        map.setFitView(routeOverlays, false, [72, 72, 72, 72], 16);
+      }
       onRouteSummary({ distance, duration, complete });
       setRouteState("ready");
       setMessage(complete ? "真实道路已刷新" : "部分路段暂时无法计算");
     });
 
     return () => { cancelled = true; };
-  }, [candidatePois, color, dayPois, mapReady, onRouteSummary, onSelect, revision, segments]);
+  }, [candidatePois, color, dayPois, mapReady, onRouteSummary, onSelect, researchArea, revision, segments]);
 
   useEffect(() => {
     if (!containerRef.current) return;

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 async function render(pathname = "/") {
@@ -24,7 +25,18 @@ test("server-renders the Qingtian travel planner", async () => {
   assert.match(html, /21/);
   assert.match(html, /道路/);
   assert.match(html, /遥感/);
+  assert.match(html, /行程卡片/);
+  assert.match(html, /路线地图/);
+  assert.match(html, /候选地点/);
   assert.doesNotMatch(html, /Your site is taking shape|react-loading-skeleton/);
+});
+
+test("defines a destination research-area viewport", async () => {
+  const trip = JSON.parse(await readFile(new URL("../trip.json", import.meta.url), "utf8"));
+  assert.equal(trip.trip.city, "青田县");
+  assert.equal(trip.trip.map_view.zoom, 10);
+  assert.ok(trip.trip.map_view.bounds.southwest.lng < trip.trip.map_view.center.lng);
+  assert.ok(trip.trip.map_view.bounds.northeast.lng > trip.trip.map_view.center.lng);
 });
 
 test("server-renders the product case study without developer-facing resume copy", async () => {
