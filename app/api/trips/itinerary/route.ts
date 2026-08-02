@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { getChatGPTUser } from "../../../chatgpt-auth";
 import { diffAdjacentRouteSegments } from "../../../../platform/runtime/route-diff.mjs";
-import { dataLayer, digest, routeError } from "../../../../platform/server/planning-runtime";
+import { canceledRunResponse, dataLayer, digest, routeError } from "../../../../platform/server/planning-runtime";
 
 function sameOrigin(request: Request) {
   const origin = request.headers.get("origin");
@@ -33,6 +33,8 @@ export async function PATCH(request: Request) {
       .where(and(eq(planningRuns.id, runId), eq(planningRuns.ownerUserId, user.userId)))
       .limit(1);
     if (!run) return Response.json({ error: "Travel plan not found" }, { status: 404 });
+    const canceled = canceledRunResponse(run);
+    if (canceled) return canceled;
     if (!["scheduled", "routing", "published"].includes(run.currentStage)) {
       return Response.json({ error: `Itinerary editing requires a scheduled plan (current stage: ${run.currentStage})` }, { status: 409 });
     }

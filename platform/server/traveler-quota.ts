@@ -1,9 +1,8 @@
 import { and, eq, gte, notInArray } from "drizzle-orm";
+import { INACTIVE_RUN_STATUSES } from "../runtime/run-lifecycle.mjs";
 import { dataLayer, runtimeSecrets } from "./planning-runtime";
 
 export type ProviderKind = "poi" | "route";
-
-const inactiveStatuses = ["complete", "complete_with_warnings", "failed"];
 
 function positiveInteger(value: string | undefined, fallback: number) {
   const parsed = Number(value);
@@ -30,7 +29,7 @@ export async function travelerQuota(ownerUserId: string) {
   const [activeRows, monthlyRows, usageRows] = await Promise.all([
     db.select({ id: planningRuns.id }).from(planningRuns).where(and(
       eq(planningRuns.ownerUserId, ownerUserId),
-      notInArray(planningRuns.status, inactiveStatuses),
+      notInArray(planningRuns.status, INACTIVE_RUN_STATUSES),
     )),
     db.select({ id: planningRuns.id }).from(planningRuns).where(and(
       eq(planningRuns.ownerUserId, ownerUserId),

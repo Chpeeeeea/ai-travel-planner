@@ -1,6 +1,6 @@
 import { desc, eq, sql } from "drizzle-orm";
 import { SOURCE_WEIGHT, normalizePlaceName, uniqueStrings } from "../../../../platform/runtime/research.mjs";
-import { dataLayer, deny, digest, parseJsonList, routeError } from "../../../../platform/server/planning-runtime";
+import { canceledRunResponse, dataLayer, deny, digest, parseJsonList, routeError } from "../../../../platform/server/planning-runtime";
 
 type EvidenceInput = {
   lane?: string;
@@ -144,6 +144,8 @@ export async function POST(request: Request) {
     const db = getDb();
     const [run] = await db.select().from(planningRuns).where(eq(planningRuns.id, runId)).limit(1);
     if (!run) return Response.json({ error: "PlanningRun not found" }, { status: 404 });
+    const canceled = canceledRunResponse(run);
+    if (canceled) return canceled;
     if (run.currentStage !== "brief" && run.currentStage !== "researching") {
       return Response.json({ error: `Research evidence is locked after shortlist compilation (current stage: ${run.currentStage})` }, { status: 409 });
     }
