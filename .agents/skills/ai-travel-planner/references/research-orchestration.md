@@ -12,26 +12,17 @@ For a simple one-day route or fewer than five candidate stops, research locally 
 
 ## Topic catalog and defaults
 
-`history`、`culture`、`scenery`、`food` are the recommended defaults, not a fixed product boundary. The platform may create one lane for each selected topic, up to eight lanes per Brief and four concurrently:
+`history`、`culture`、`scenery`、`food` are the recommended defaults, not a fixed product boundary. The product catalog exposes 38 topics in five browseable groups. Create one lane for each selected topic, up to eight lanes per Brief and four concurrently:
 
-| Lane | Scope | Default artifact |
-|---|---|---|
-| history | chronology, migration, people, historic sites | `research/01-history.md` |
-| culture | heritage, museums, local life, crafts, rituals | `research/02-culture.md` |
-| scenery | urban landscape, nature, season, safety, access | `research/03-scenery.md` |
-| food | local dishes, restaurants, cafés, food customs | `research/04-food.md` |
-| architecture | historic/modern architecture, street fabric, urban walks | `research/architecture.md` |
-| museums | museums, memorials, collections, current visitor rules | `research/museums.md` |
-| art | galleries, public art, design spaces, exhibitions, performances | `research/art.md` |
-| local_life | neighborhoods, markets, public space, everyday rhythms | `research/local-life.md` |
-| family | child-friendly venues, interaction, rest and care facilities | `research/family.md` |
-| nightlife | night views, markets, performance, bars, late opening and safety | `research/nightlife.md` |
-| shopping | markets, local products, crafts, bookstores and souvenirs | `research/shopping.md` |
-| outdoors | hiking, cycling, camping, water/snow activities and safety | `research/outdoors.md` |
-| photography | viewpoints, light, timing, tripods and shooting restrictions | `research/photography.md` |
-| wellness | hot springs, resorts, slow travel, recovery and seasonality | `research/wellness.md` |
-| faith | temples, churches, shrines, religious art and etiquette | `research/faith.md` |
-| film | filming locations, literature, animation, games and themed venues | `research/film.md` |
+| Group | Lane IDs |
+|---|---|
+| Humanities and city | `history`, `culture`, `architecture`, `museums`, `art`, `faith`, `literature`, `industrial` |
+| Nature and outdoors | `scenery`, `outdoors`, `cycling`, `camping`, `coast`, `water`, `snow`, `wildlife` |
+| Food and local life | `food`, `local_life`, `markets`, `coffee`, `tea`, `nightlife`, `shopping`, `craft` |
+| Interests and entertainment | `film`, `photography`, `performance`, `festivals`, `sports`, `themeparks`, `technology` |
+| Travel style | `family`, `wellness`, `slow`, `roadtrip`, `railway`, `accessible`, `pet` |
+
+Use the selected catalog item's `scope` from `platform/runtime/travel-topics.mjs` in the research prompt; do not maintain a second hard-coded scope list in the Worker. Write each artifact as `research/<lane-id>.md`.
 
 Catalog-external interests may be combined into one `special_interest` lane that preserves the user's original wording. If the user selects nothing, use the four recommended defaults.
 

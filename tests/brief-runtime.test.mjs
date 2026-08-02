@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { normalizeBrief } from "../platform/runtime/brief.mjs";
-import { MAX_SELECTED_TRAVEL_TOPICS, TRAVEL_TOPICS, topicsForInterests } from "../platform/runtime/travel-topics.mjs";
+import { MAX_SELECTED_TRAVEL_TOPICS, TRAVEL_TOPIC_GROUPS, TRAVEL_TOPICS, topicsForInterests } from "../platform/runtime/travel-topics.mjs";
 
 test("normalizes a traveler brief into the platform contract", () => {
   const brief = normalizeBrief({
@@ -28,10 +28,19 @@ test("rejects an invalid destination or duration", () => {
 });
 
 test("maps a broad user-selected travel topic catalog into bounded research lanes", () => {
-  assert.ok(TRAVEL_TOPICS.length >= 16);
+  assert.equal(TRAVEL_TOPICS.length, 38);
+  assert.deepEqual(TRAVEL_TOPIC_GROUPS.map((group) => group.id), ["humanities", "nature", "lifestyle", "entertainment", "travel_style"]);
+  assert.ok(TRAVEL_TOPIC_GROUPS.every((group) => TRAVEL_TOPICS.some((topic) => topic.group === group.id)));
   const selected = topicsForInterests(["历史", "博物馆", "建筑", "夜游", "摄影", "亲子", "户外", "温泉", "咖啡庄园"]);
   assert.equal(selected.length, MAX_SELECTED_TRAVEL_TOPICS);
   assert.deepEqual(selected.slice(0, 4).map((topic) => topic.id), ["history", "museums", "architecture", "nightlife"]);
   assert.deepEqual(topicsForInterests([]).map((topic) => topic.id), ["history", "culture", "scenery", "food"]);
   assert.equal(topicsForInterests(["咖啡庄园"])[0].id, "special_interest");
+});
+
+test("maps new specialist interests to their dedicated research lanes", () => {
+  assert.deepEqual(
+    topicsForInterests(["观鸟", "菜场", "音乐会", "自驾", "宠物友好", "工业遗产"]).map((topic) => topic.id),
+    ["wildlife", "markets", "performance", "roadtrip", "pet", "industrial"],
+  );
 });

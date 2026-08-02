@@ -38,7 +38,7 @@ description: "Research-first travel planning platform workflow that compiles off
 |---|---|
 | 城市/区域 | 必填 |
 | 日期或天数 | 1 天 |
-| 兴趣主题 | 默认历史遗迹、文化非遗、自然风景、地方美食；平台最多选择 8 项 |
+| 兴趣主题 | 默认历史遗迹、文化非遗、自然风景、地方美食；从五类 38 项目录中最多选择 8 项 |
 | 特别想吃 `must_eat` | 无；多个菜品或店铺需求分别记录 |
 | 每日时间窗 | 09:00–18:00 |
 | 强度 | 适中，每天 4–6 个主 POI |
@@ -78,7 +78,7 @@ python scripts/trip_pipeline.py init --city "杭州" --days 2 --output trip.json
 
 ### 2. 并行做多主题研究
 
-多日、跨主题或用户要求深度功课时，读取 `references/research-orchestration.md`，按用户选择动态拆分研究线。历史遗迹、文化非遗、自然风景、地方美食只是默认推荐；建筑、博物馆、艺术、在地生活、亲子、夜游、购物、户外、摄影、康养、信仰和影视动漫同样可以成为独立研究线。平台最多选择 8 项、同时运行最多 4 个 Agent；简单一日游不强制拆分。
+多日、跨主题或用户要求深度功课时，读取 `references/research-orchestration.md`，按用户选择动态拆分研究线。历史遗迹、文化非遗、自然风景、地方美食只是默认推荐；产品目录还覆盖人文城市、自然户外、吃喝生活、兴趣娱乐和旅行方式等细分主题。平台最多选择 8 项、同时运行最多 4 个 Agent；简单一日游不强制拆分。
 
 平台发现统一调用 `vibe-web-research` 的 `search` 模式；官方网页与原始场馆来源负责事实核验。已取得的文章或视频可交给 `content-analysis`。每条研究线必须生成独立 Markdown 文档与结构化候选 POI，不直接编写最终行程，也不调用高德 Key。
 
