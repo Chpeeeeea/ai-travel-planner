@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useMemo, useRef, useState } from "react";
 import AmapMap from "./AmapMap";
+import ShareControls from "./ShareControls";
 import type { Assignment, Day, Poi, TripData } from "./travelTypes";
 
 const dayColors = ["#e4572e", "#247ba0", "#6a994e"];
@@ -62,9 +63,10 @@ type PlannerProps = {
   summaryLabel?: string;
   editableRunId?: string;
   exportBaseHref?: string;
+  shareRunId?: string;
 };
 
-export default function Planner({ data, backHref, backLabel = "返回任务", summaryHref, summaryLabel = "行程摘要", editableRunId, exportBaseHref }: PlannerProps) {
+export default function Planner({ data, backHref, backLabel = "返回任务", summaryHref, summaryLabel = "行程摘要", editableRunId, exportBaseHref, shareRunId }: PlannerProps) {
   const [days, setDays] = useState<Day[]>(data.days);
   const [selectedDayId, setSelectedDayId] = useState(data.days[0]?.id ?? "");
   const [selectedPoiId, setSelectedPoiId] = useState(data.days[0]?.assignments[0]?.poi_id ?? "");
@@ -210,6 +212,7 @@ export default function Planner({ data, backHref, backLabel = "返回任务", su
         </div>
         <div className="header-actions">
           <span className={`sync-state ${saveState === "error" ? "sync-error" : ""}`}><i /> {displayedRouteState}</span>
+          {shareRunId && <ShareControls runId={shareRunId} />}
           {summaryHref && <Link className="ghost-button portfolio-link" href={summaryHref}>{summaryLabel}</Link>}
           {backHref && <Link className="ghost-button portfolio-link" href={backHref}>{backLabel}</Link>}
         </div>

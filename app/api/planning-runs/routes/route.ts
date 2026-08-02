@@ -3,6 +3,7 @@ import { normalizeAmapRoute, straightLineFallback } from "../../../../platform/r
 import { routeModeForPair } from "../../../../platform/runtime/schedule.mjs";
 import { AmapProviderError, amapWebServiceKey, requestAmapRoute, type AmapRouteMode } from "../../../../platform/server/amap-provider";
 import { dataLayer, deny, digest, routeError } from "../../../../platform/server/planning-runtime";
+import { providerAllowance, recordProviderUsage } from "../../../../platform/server/traveler-quota";
 
 function chunks<T>(items: T[], size: number) {
   const result: T[][] = [];
@@ -82,15 +83,6 @@ export async function POST(request: Request) {
     const runId = String(payload.run_id ?? "").trim().slice(0, 100);
     const limit = Math.max(1, Math.min(5, Math.floor(Number(payload.limit) || 5)));
     if (!runId) return Response.json({ error: "run_id is required" }, { status: 400 });
-    if (!payload.prepare_only) {
-      try { await amapWebServiceKey(); }
-      catch (error) {
-        if (error instanceof AmapProviderError && error.code === "MISSING_KEY") {
-          return Response.json({ error: error.message, required_secret: "AMAP_WEBSERVICE_KEY" }, { status: 503 });
-        }
-        throw error;
-      }
-    }
     const { planningBriefs, planningRunEvents, planningRuns, routeSegments } = await dataLayer();
     let data = await routeData(runId);
     const [run] = await data.db.select().from(planningRuns).where(eq(planningRuns.id, runId)).limit(1);
@@ -149,7 +141,29 @@ export async function POST(request: Request) {
       }, { status: 201 });
     }
 
-    const eligible = data.segmentRows.filter((item) => item.status === "pending" || (payload.retry_fallback && item.status === "fallback_straight_line")).slice(0, limit);
+    const allowance = await providerAllowance(run.ownerUserId, "route", limit);
+    const pendingBefore = data.segmentRows.filter((item) => item.status === "pending").length;
+    if (!allowance.allowed) {
+      return Response.json({
+        run: { id: runId, current_stage: "routing", provider_route_calls: run.providerRouteCalls },
+        attempted_provider_calls: 0,
+        processed: 0,
+        pending: pendingBefore,
+        fallback_segments: data.segmentRows.filter((item) => item.status === "fallback_straight_line").length,
+        quota_exceeded: true,
+        stopped_early: true,
+        quota: allowance.quota,
+        results: [],
+      });
+    }
+    try { await amapWebServiceKey(); }
+    catch (error) {
+      if (error instanceof AmapProviderError && error.code === "MISSING_KEY") {
+        return Response.json({ error: error.message, required_secret: "AMAP_WEBSERVICE_KEY" }, { status: 503 });
+      }
+      throw error;
+    }
+    const eligible = data.segmentRows.filter((item) => item.status === "pending" || (payload.retry_fallback && item.status === "fallback_straight_line")).slice(0, allowance.allowed);
     const assignmentById = new Map(data.assignmentRows.map((item) => [item.id, item]));
     const verifiedMatches = new Map(data.matchRows.filter((item) => item.status === "verified").map((item) => [item.candidateId, item]));
     let calls = 0;
@@ -204,12 +218,14 @@ export async function POST(request: Request) {
     const fallbacks = refreshed.segmentRows.filter((item) => item.status === "fallback_straight_line").length;
     const complete = pending === 0 && refreshed.segmentRows.length > 0;
     const providerRouteCalls = run.providerRouteCalls + calls;
+    const usageCreatedAt = new Date().toISOString();
+    await recordProviderUsage(run.ownerUserId, runId, "route", calls, usageCreatedAt);
     await refreshed.db.update(planningRuns).set({
       currentStage: complete ? "published" : "routing",
       status: complete ? (fallbacks ? "complete_with_warnings" : "complete") : (lastError ? "running_with_warnings" : "running"),
       providerRouteCalls,
       lastError: lastError || null,
-      updatedAt: new Date().toISOString(),
+      updatedAt: usageCreatedAt,
     }).where(eq(planningRuns.id, runId));
     await refreshed.db.insert(planningRunEvents).values({
       id: crypto.randomUUID(), runId, fromStage: "routing", toStage: "routing",
@@ -232,6 +248,7 @@ export async function POST(request: Request) {
       pending,
       fallback_segments: fallbacks,
       stopped_early: stoppedEarly,
+      quota: allowance.quota,
       results,
     });
   } catch (error) {

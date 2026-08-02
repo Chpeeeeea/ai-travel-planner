@@ -56,6 +56,7 @@ export default async function TripPage({ searchParams }: { searchParams: Promise
     backHref={`/studio?run_id=${encodeURIComponent(runId)}`}
     backLabel="返回任务"
     editableRunId={runId}
+    shareRunId={runId}
     exportBaseHref={`/api/trips/export?run_id=${encodeURIComponent(runId)}`}
   />;
 }
