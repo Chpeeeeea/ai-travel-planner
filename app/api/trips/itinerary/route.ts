@@ -1,5 +1,6 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { getChatGPTUser } from "../../../chatgpt-auth";
+import { diffAdjacentRouteSegments } from "../../../../platform/runtime/route-diff.mjs";
 import { dataLayer, digest, routeError } from "../../../../platform/server/planning-runtime";
 
 function sameOrigin(request: Request) {
@@ -38,10 +39,11 @@ export async function PATCH(request: Request) {
     const [day] = await db.select().from(itineraryDays).where(and(eq(itineraryDays.id, dayId), eq(itineraryDays.runId, runId))).limit(1);
     if (!day) return Response.json({ error: "Itinerary day not found" }, { status: 404 });
 
-    const [candidateRows, matchRows, existingAssignments] = await Promise.all([
+    const [candidateRows, matchRows, existingAssignments, existingSegments] = await Promise.all([
       db.select().from(candidates).where(and(eq(candidates.runId, runId), inArray(candidates.id, poiIds))),
       db.select().from(providerMatches).where(and(eq(providerMatches.runId, runId), inArray(providerMatches.candidateId, poiIds))),
       db.select().from(assignments).where(eq(assignments.dayId, dayId)).orderBy(asc(assignments.orderIndex)),
+      db.select().from(routeSegments).where(eq(routeSegments.dayId, dayId)),
     ]);
     const verifiedCandidates = new Set(candidateRows.filter((item) => item.verificationStatus === "verified").map((item) => item.id));
     const locatedMatches = new Set(matchRows.filter((item) => item.status === "verified" && item.lng !== null && item.lat !== null).map((item) => item.candidateId));
@@ -68,12 +70,41 @@ export async function PATCH(request: Request) {
         notes: existing?.notes || "旅行者自定义加入，等待真实道路重新计算",
       };
     }));
+    const nextAssignmentIds = assignmentRows.map((item) => item.id);
+    const routeDiff = diffAdjacentRouteSegments(existingSegments, nextAssignmentIds);
+    const retainedRows = assignmentRows.filter((item) => existingByCandidate.has(item.candidateId));
+    const newRows = assignmentRows.filter((item) => !existingByCandidate.has(item.candidateId));
+    const nextCandidateIds = new Set(poiIds);
+    const removedAssignmentIds = existingAssignments.filter((item) => !nextCandidateIds.has(item.candidateId)).map((item) => item.id);
+    const invalidSegmentOperations = routeDiff.invalid_segment_ids.length
+      ? [db.delete(routeSegments).where(inArray(routeSegments.id, routeDiff.invalid_segment_ids))]
+      : [];
+    const removedAssignmentOperations = removedAssignmentIds.length
+      ? [db.delete(assignments).where(inArray(assignments.id, removedAssignmentIds))]
+      : [];
+    const temporaryOrderOperations = retainedRows.map((item, index) => db.update(assignments).set({
+      orderIndex: -1000 - index,
+      arrivalTime: null,
+      departureTime: null,
+    }).where(eq(assignments.id, item.id)));
+    const insertOperations = newRows.length ? [db.insert(assignments).values(newRows)] : [];
+    const finalOrderOperations = retainedRows.map((item) => db.update(assignments).set({
+      orderIndex: item.orderIndex,
+    }).where(eq(assignments.id, item.id)));
     const now = new Date().toISOString();
+    const queueRunOperation = db.update(planningRuns).set({
+      currentStage: "scheduled",
+      status: "queued",
+      lastError: null,
+      updatedAt: now,
+    }).where(eq(planningRuns.id, runId));
     await db.batch([
-      db.delete(routeSegments).where(eq(routeSegments.dayId, dayId)),
-      db.delete(assignments).where(eq(assignments.dayId, dayId)),
-      db.insert(assignments).values(assignmentRows),
-      db.update(planningRuns).set({ currentStage: "scheduled", status: "queued", lastError: null, updatedAt: now }).where(eq(planningRuns.id, runId)),
+      queueRunOperation,
+      ...invalidSegmentOperations,
+      ...removedAssignmentOperations,
+      ...temporaryOrderOperations,
+      ...insertOperations,
+      ...finalOrderOperations,
       db.insert(planningRunEvents).values({
         id: crypto.randomUUID(),
         runId,
@@ -82,7 +113,7 @@ export async function PATCH(request: Request) {
         status: "traveler_itinerary_edited",
         poiCalls: 0,
         routeCalls: 0,
-        message: `Traveler updated Day ${day.dayNumber} to ${poiIds.length} stops; adjacent roads queued for recalculation`,
+        message: `Traveler updated Day ${day.dayNumber} to ${poiIds.length} stops; preserved ${routeDiff.preserved_segment_ids.length} routes and queued ${routeDiff.missing_pairs.length} affected pairs`,
         createdAt: now,
       }),
     ]);
@@ -90,8 +121,10 @@ export async function PATCH(request: Request) {
       run: { id: runId, current_stage: "scheduled", status: "queued" },
       day_id: dayId,
       assignments: poiIds.length,
-      invalidated_route_segments: true,
-      reroute_queued: true,
+      invalidated_route_segments: routeDiff.invalid_segment_ids.length,
+      preserved_route_segments: routeDiff.preserved_segment_ids.length,
+      queued_route_pairs: routeDiff.missing_pairs.length,
+      reroute_queued: routeDiff.missing_pairs.length > 0,
     });
   } catch (error) {
     return Response.json({ error: routeError(error) }, { status: 500 });
