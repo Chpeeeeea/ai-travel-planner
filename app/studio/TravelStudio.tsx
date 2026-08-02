@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { MAX_SELECTED_TRAVEL_TOPICS, TRAVEL_TOPICS } from "../../platform/runtime/travel-topics.mjs";
+import TravelTopicPicker from "../TravelTopicPicker";
 import styles from "./studio.module.css";
 import reviewStyles from "./review.module.css";
 
@@ -162,7 +163,7 @@ export default function TravelStudio({ user, initialBrief, initialRunId }: {
         <div><span>{user.displayName}</span><Link href="/signout-with-chatgpt?return_to=%2F">退出</Link></div>
       </header>
       <section className={styles.hero}>
-        <div><p>TRAVEL RESEARCH STUDIO</p><h1>把一次旅行，做成可恢复的研究任务。</h1><span>青田只是案例。这里创建的每个目的地都有独立 Brief、证据、候选池、POI 核验和真实道路记录。</span></div>
+        <div><p>TRAVEL RESEARCH STUDIO</p><h1>旅行研究工作台</h1><span>选择主题和具体需求，系统会保存研究、候选、POI 核验与真实道路的完整进度。</span></div>
         <dl><div><dt>研究阶段</dt><dd>高德 0 次</dd></div><div><dt>最终候选</dt><dd>20–40 个</dd></div><div><dt>每日地点</dt><dd>4–6 个</dd></div></dl>
       </section>
       <div className={styles.layout}>
@@ -177,7 +178,7 @@ export default function TravelStudio({ user, initialBrief, initialRunId }: {
             <header><p>NEW PLANNING RUN</p><h2>新建旅行研究</h2><span>提交后先建立任务记录，不会立刻用高德全城搜索。</span></header>
             <form onSubmit={createRun}>
               <div className={styles.formGrid}><label>目的地<input required value={draft.destination} onChange={(event) => setDraft({ ...draft, destination: event.target.value })} /></label><label>旅行天数<select value={draft.days} onChange={(event) => setDraft({ ...draft, days: Number(event.target.value) })}>{[1,2,3,4,5,6,7].map((day) => <option key={day} value={day}>{day} 天</option>)}</select></label></div>
-              <fieldset><legend>研究主题 · 已选 {draft.interests.length}/{MAX_SELECTED_TRAVEL_TOPICS}</legend><div className={styles.themeGrid}>{themeCatalog.map((theme) => <button type="button" key={theme.id} title={theme.scope} className={draft.interests.includes(theme.label) ? styles.selectedTheme : ""} onClick={() => toggleTheme(theme.label)}>{theme.label}</button>)}</div></fieldset>
+              <fieldset><legend>研究主题 · 分类选择</legend><TravelTopicPicker selected={draft.interests} onToggle={toggleTheme} /></fieldset>
               <div className={styles.formGrid}><label>特别想吃<input value={mustEatText} onChange={(event) => setMustEatText(event.target.value)} placeholder="菜品或店铺，用逗号分隔" /></label><label>必去地点<input value={mustVisitText} onChange={(event) => setMustVisitText(event.target.value)} placeholder="景点或区域，用逗号分隔" /></label></div>
               <div className={styles.preview}><span>预计核验不超过 <b>{estimates.shortlist}</b> 个最终候选</span><span>预计计算约 <b>{estimates.routes}</b> 段相邻道路</span></div>
               <button className={styles.primary} disabled={creating}>{creating ? "正在建立任务…" : "创建 PlanningRun"}</button>
