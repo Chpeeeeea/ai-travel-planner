@@ -29,8 +29,11 @@ test("server-renders the platform product home", async () => {
   assert.match(html, /必去地点/);
   assert.match(html, /建筑漫步/);
   assert.match(html, /博物馆/);
-  assert.match(html, /亲子家庭/);
-  assert.match(html, /户外运动/);
+  assert.match(html, /人文与城市/);
+  assert.match(html, /自然与户外/);
+  assert.match(html, /旅行方式/);
+  assert.match(html, /全部/);
+  assert.match(html, />38</);
   assert.match(html.replaceAll("<!-- -->", ""), /已选 4\/8/);
   assert.match(html, /锅包肉/);
   assert.match(html, /进入旅行研究工作台/);
@@ -67,12 +70,12 @@ test("server-renders the signed-in traveler research studio", async () => {
   });
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /把一次旅行，做成可恢复的研究任务/);
+  assert.match(html, /旅行研究工作台/);
   assert.match(html, /创建 PlanningRun/);
   assert.match(html, /20–40 个/);
   assert.match(html, /建筑漫步/);
   assert.match(html.replaceAll("<!-- -->", ""), /已选 4\/8/);
-  assert.match(html, /青田只是案例/);
+  assert.match(html, /选择主题和具体需求/);
   assert.match(html, /田鱼/);
 });
 

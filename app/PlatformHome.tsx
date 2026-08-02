@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { DEFAULT_TRAVEL_TOPIC_IDS, MAX_SELECTED_TRAVEL_TOPICS, TRAVEL_TOPICS } from "../platform/runtime/travel-topics.mjs";
+import TravelTopicPicker from "./TravelTopicPicker";
 import styles from "./platform.module.css";
 
 const themeCatalog = TRAVEL_TOPICS as ReadonlyArray<{ id: string; label: string; scope: string }>;
@@ -108,7 +109,7 @@ export default function PlatformHome() {
           <label>旅行天数<select value={days} onChange={(event) => setDays(Number(event.target.value))}>
             {[1, 2, 3, 4, 5, 6, 7].map((value) => <option key={value} value={value}>{value} 天</option>)}
           </select></label>
-          <fieldset><legend>兴趣重点 <span>已选 {selectedThemes.length}/{MAX_SELECTED_TRAVEL_TOPICS}</span></legend><div className={styles.themeGrid}>{themeCatalog.map((theme) => <button type="button" key={theme.id} title={theme.scope} className={selectedThemes.includes(theme.label) ? styles.selected : ""} onClick={() => toggleTheme(theme.label)} aria-pressed={selectedThemes.includes(theme.label)}>{theme.label}</button>)}</div></fieldset>
+          <fieldset><legend>兴趣重点 <span>可多选</span></legend><TravelTopicPicker selected={selectedThemes} onToggle={toggleTheme} /></fieldset>
           <fieldset className={styles.customNeeds}>
             <legend>这次旅行最在意什么 <span>可选，多个内容用逗号分隔</span></legend>
             <div className={styles.customNeedGrid}>
