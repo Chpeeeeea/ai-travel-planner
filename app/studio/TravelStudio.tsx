@@ -27,6 +27,12 @@ type RunSummary = {
   id: string; destination: string; days: number; status: string; current_stage: string; stage_index: number;
   provider_poi_calls: number; provider_route_calls: number; last_error: string | null; created_at: string; updated_at: string;
 };
+type TravelerQuota = {
+  limits: { active_runs: number; monthly_runs: number; monthly_poi_calls: number; monthly_route_calls: number };
+  usage: { active_runs: number; monthly_runs: number; monthly_poi_calls: number; monthly_route_calls: number };
+  remaining: { active_runs: number; monthly_runs: number; monthly_poi_calls: number; monthly_route_calls: number };
+  reset_at: string;
+};
 type Snapshot = {
   run: RunSummary;
   brief: { interests?: string[]; must_eat?: string[]; must_visit?: string[] } | null;
@@ -38,6 +44,7 @@ type Snapshot = {
   worker: { attempt: number; active: boolean; version: string | null; lease_expires_at: string | null };
   events: Array<{ id: string; to_stage: string; status: string; message: string; poi_calls: number; route_calls: number; created_at: string }>;
   policy: { research_provider_calls: number; shortlist_range: number[]; daily_stops_range: number[]; route_rule: string };
+  quota: TravelerQuota;
 };
 
 function joinNeeds(values: string[]) { return values.join("、"); }
@@ -51,6 +58,7 @@ function nextStatement(stage: string) {
   if (stage === "verifying") return "接下来：只使用已核验 POI，每天选择 4–6 个并完成区域聚类和顺序优化。";
   if (stage === "scheduled") return "接下来：只为同一天相邻地点请求真实道路，不计算候选池路线矩阵。";
   if (stage === "routing") return "接下来：道路完成后发布统一行程，卡片与地图由同一份数据驱动。";
+  if (stage === "awaiting_quota") return "接下来：本月高德额度重置后，同一个 Research Worker 会自动恢复未完成的 POI 核验或道路计算。";
   return "行程已经发布，可以进入卡片地图继续查看和调整。";
 }
 
@@ -67,6 +75,7 @@ export default function TravelStudio({ user, initialBrief, initialRunId }: {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
+  const [quota, setQuota] = useState<TravelerQuota | null>(null);
 
   const currentIndex = snapshot ? (stageIndex.get(snapshot.run.current_stage as typeof stages[number][0]) ?? 0) : 0;
   const estimates = useMemo(() => ({ shortlist: Math.min(40, Math.max(20, draft.days * 10)), routes: draft.days * 4 }), [draft.days]);
@@ -75,8 +84,8 @@ export default function TravelStudio({ user, initialBrief, initialRunId }: {
     let cancelled = false;
     fetch("/api/trips").then(async (response) => {
       if (!response.ok) throw new Error("无法读取旅行任务");
-      const data = await response.json() as { runs?: RunSummary[]; error?: string };
-      if (!cancelled) setRuns(data.runs ?? []);
+      const data = await response.json() as { runs?: RunSummary[]; quota?: TravelerQuota; error?: string };
+      if (!cancelled) { setRuns(data.runs ?? []); setQuota(data.quota ?? null); }
     }).catch((reason) => { if (!cancelled) setError(reason instanceof Error ? reason.message : "无法读取旅行任务"); });
     return () => { cancelled = true; };
   }, []);
@@ -94,9 +103,10 @@ export default function TravelStudio({ user, initialBrief, initialRunId }: {
         if (!response.ok) throw new Error(data.error || "无法读取任务进度");
         if (cancelled) return;
         setSnapshot(data);
+        setQuota(data.quota);
         setError("");
         setRuns((current) => [data.run, ...current.filter((item) => item.id !== data.run.id)]);
-        if (data.run.current_stage !== "published" && data.run.status !== "failed") timer = setTimeout(poll, 5000);
+        if (data.run.current_stage !== "published" && data.run.status !== "failed") timer = setTimeout(poll, data.run.status === "awaiting_quota" ? 60_000 : 5000);
       } catch (reason) {
         if (cancelled || (reason instanceof DOMException && reason.name === "AbortError")) return;
         setError(reason instanceof Error ? reason.message : "无法读取任务进度");
@@ -129,8 +139,10 @@ export default function TravelStudio({ user, initialBrief, initialRunId }: {
           daily_stops: { min: 4, max: 6 },
         }),
       });
-      const data = await response.json() as { run: { id: string }; error?: string };
+      const data = await response.json() as { run?: { id: string }; quota?: TravelerQuota; error?: string };
       if (!response.ok) throw new Error(data.error || "创建任务失败");
+      if (!data.run) throw new Error("创建任务失败");
+      setQuota(data.quota ?? quota);
       setSnapshot(null);
       setActiveRunId(data.run.id);
       window.history.replaceState({}, "", `/studio?run_id=${encodeURIComponent(data.run.id)}`);
@@ -160,7 +172,7 @@ export default function TravelStudio({ user, initialBrief, initialRunId }: {
     <main className={styles.page}>
       <header className={styles.topbar}>
         <Link href="/" className={styles.brand}><span>行</span><b>AI Travel Planner</b></Link>
-        <div><span>{user.displayName}</span><Link href="/signout-with-chatgpt?return_to=%2F">退出</Link></div>
+        <div>{quota && <span>本月高德 POI {quota.usage.monthly_poi_calls}/{quota.limits.monthly_poi_calls} · 路线 {quota.usage.monthly_route_calls}/{quota.limits.monthly_route_calls}</span>}<span>{user.displayName}</span><Link href="/signout-with-chatgpt?return_to=%2F">退出</Link></div>
       </header>
       <section className={styles.hero}>
         <div><p>TRAVEL RESEARCH STUDIO</p><h1>旅行研究工作台</h1><span>选择主题和具体需求，系统会保存研究、候选、POI 核验与真实道路的完整进度。</span></div>
@@ -180,8 +192,8 @@ export default function TravelStudio({ user, initialBrief, initialRunId }: {
               <div className={styles.formGrid}><label>目的地<input required value={draft.destination} onChange={(event) => setDraft({ ...draft, destination: event.target.value })} /></label><label>旅行天数<select value={draft.days} onChange={(event) => setDraft({ ...draft, days: Number(event.target.value) })}>{[1,2,3,4,5,6,7].map((day) => <option key={day} value={day}>{day} 天</option>)}</select></label></div>
               <fieldset><legend>研究主题 · 分类选择</legend><TravelTopicPicker selected={draft.interests} onToggle={toggleTheme} /></fieldset>
               <div className={styles.formGrid}><label>特别想吃<input value={mustEatText} onChange={(event) => setMustEatText(event.target.value)} placeholder="菜品或店铺，用逗号分隔" /></label><label>必去地点<input value={mustVisitText} onChange={(event) => setMustVisitText(event.target.value)} placeholder="景点或区域，用逗号分隔" /></label></div>
-              <div className={styles.preview}><span>预计核验不超过 <b>{estimates.shortlist}</b> 个最终候选</span><span>预计计算约 <b>{estimates.routes}</b> 段相邻道路</span></div>
-              <button className={styles.primary} disabled={creating}>{creating ? "正在建立任务…" : "创建 PlanningRun"}</button>
+              <div className={styles.preview}><span>预计核验不超过 <b>{estimates.shortlist}</b> 个最终候选</span><span>预计计算约 <b>{estimates.routes}</b> 段相邻道路</span>{quota && <span>还可创建 <b>{Math.min(quota.remaining.active_runs, quota.remaining.monthly_runs)}</b> 个任务 · {new Date(quota.reset_at).toLocaleDateString("zh-CN")} 重置</span>}</div>
+              <button className={styles.primary} disabled={creating || quota?.remaining.active_runs === 0 || quota?.remaining.monthly_runs === 0}>{creating ? "正在建立任务…" : "创建 PlanningRun"}</button>
               {error && <p className={styles.error} role="alert">{error}</p>}
             </form>
           </section>
@@ -189,7 +201,7 @@ export default function TravelStudio({ user, initialBrief, initialRunId }: {
           <section className={styles.progressPanel}>
             <header className={styles.runHeader}><div><p>PLANNING RUN</p><h2>{snapshot.run.destination} · {snapshot.run.days} 天</h2><span>任务 {snapshot.run.id.slice(0, 8)} · {dateText(snapshot.run.updated_at)} 更新</span></div><div><b>{snapshot.progress.evidence_total}</b><span>研究证据</span><b>{snapshot.run.provider_poi_calls}</b><span>POI 调用</span><b>{snapshot.run.provider_route_calls}</b><span>路线调用</span></div></header>
             <ol className={styles.stageList}>{stages.map(([id, title, copy], index) => { const state = index < currentIndex ? "done" : index === currentIndex ? "active" : "waiting"; return <li key={id} data-state={state}><i>{state === "done" ? "✓" : String(index + 1).padStart(2,"0")}</i><div><strong>{title}</strong><span>{copy}</span></div><em>{state === "done" ? "完成" : state === "active" ? "当前" : "等待"}</em></li>; })}</ol>
-            <div className={styles.nextStep}><span>下一步声明</span><p>{nextStatement(snapshot.run.current_stage)}</p>{snapshot.run.current_stage === "brief" && <small>任务已进入持久化队列，等待 Research Worker 领取；没有真实证据前不会伪造候选或地图结果。</small>}{snapshot.worker.active && <small>Research Worker 正在执行第 {snapshot.worker.attempt} 次尝试，租约到期前会持续发送心跳。</small>}</div>
+            <div className={styles.nextStep}><span>下一步声明</span><p>{nextStatement(snapshot.run.status === "awaiting_quota" ? "awaiting_quota" : snapshot.run.current_stage)}</p>{snapshot.run.current_stage === "brief" && <small>任务已进入持久化队列，等待 Research Worker 领取；没有真实证据前不会伪造候选或地图结果。</small>}{snapshot.worker.active && <small>Research Worker 正在执行第 {snapshot.worker.attempt} 次尝试，租约到期前会持续发送心跳。</small>}</div>
             <div className={styles.metrics}>
               <article><span>已选主题研究线</span><div>{(snapshot.progress.research_lanes.length ? snapshot.progress.research_lanes : Object.entries(snapshot.progress.evidence_by_lane).map(([lane, count]) => ({ lane, topic_label: laneLabels[lane] ?? lane, status: count ? "running" : "queued", attempt_count: 0, evidence_count: count, last_error: null }))).map((job) => <p key={job.lane} title={job.last_error ?? ""}><b>{job.topic_label || laneLabels[job.lane] || job.lane} · {laneStatusLabels[job.status] ?? job.status}</b><i>{job.evidence_count}</i></p>)}</div></article>
               <article><span>候选与核验</span><p><b>最终候选</b><i>{snapshot.progress.shortlisted}</i></p><p><b>已核验</b><i>{snapshot.progress.verified}</i></p><p><b>待消歧</b><i>{snapshot.progress.needs_confirmation}</i></p></article>

@@ -2,6 +2,7 @@ import { and, asc, desc, eq } from "drizzle-orm";
 import { getChatGPTUser } from "../../chatgpt-auth";
 import { normalizeBrief } from "../../../platform/runtime/brief.mjs";
 import { dataLayer, digest, routeError, stageOrder } from "../../../platform/server/planning-runtime";
+import { creationQuotaError, travelerQuota } from "../../../platform/server/traveler-quota";
 
 function sameOrigin(request: Request) {
   const origin = request.headers.get("origin");
@@ -49,12 +50,13 @@ export async function GET(request: Request) {
       planningRuns, providerMatches, researchEvidence, researchLaneJobs, routeSegments,
     } = await dataLayer();
     const db = getDb();
+    const quota = await travelerQuota(user.userId);
     if (!runId) {
       const runs = await db.select().from(planningRuns)
         .where(eq(planningRuns.ownerUserId, user.userId))
         .orderBy(desc(planningRuns.updatedAt))
         .limit(20);
-      return Response.json({ runs: runs.map(publicRun) });
+      return Response.json({ runs: runs.map(publicRun), quota });
     }
     const [run] = await db.select().from(planningRuns)
       .where(and(eq(planningRuns.id, runId), eq(planningRuns.ownerUserId, user.userId)))
@@ -118,6 +120,7 @@ export async function GET(request: Request) {
         daily_stops_range: [run.dailyStopsMin, run.dailyStopsMax],
         route_rule: "adjacent_assignments_only",
       },
+      quota,
     });
   } catch (error) {
     return Response.json({ error: routeError(error) }, { status: 500 });
@@ -130,6 +133,9 @@ export async function POST(request: Request) {
   if (!sameOrigin(request)) return Response.json({ error: "Cross-origin writes are not allowed" }, { status: 403 });
   try {
     const brief = normalizeBrief(await request.json());
+    const quota = await travelerQuota(user.userId);
+    const quotaError = creationQuotaError(quota);
+    if (quotaError) return Response.json({ error: quotaError, code: "TRAVELER_QUOTA_EXCEEDED", quota }, { status: 429 });
     const id = crypto.randomUUID();
     const { getDb, planningBriefs, planningRunEvents, planningRuns } = await dataLayer();
     const db = getDb();
@@ -157,7 +163,15 @@ export async function POST(request: Request) {
       message: "旅行需求已保存，等待 Research Worker 接管多来源研究",
       createdAt: now,
     });
-    return Response.json({ run: { id, destination: brief.destination, days: brief.days, status: "draft", current_stage: "brief" }, brief }, { status: 201 });
+    return Response.json({
+      run: { id, destination: brief.destination, days: brief.days, status: "draft", current_stage: "brief" },
+      brief,
+      quota: {
+        ...quota,
+        usage: { ...quota.usage, active_runs: quota.usage.active_runs + 1, monthly_runs: quota.usage.monthly_runs + 1 },
+        remaining: { ...quota.remaining, active_runs: quota.remaining.active_runs - 1, monthly_runs: quota.remaining.monthly_runs - 1 },
+      },
+    }, { status: 201 });
   } catch (error) {
     const message = routeError(error);
     return Response.json({ error: message }, { status: message.includes("must be") ? 400 : 500 });

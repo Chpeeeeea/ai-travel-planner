@@ -2,6 +2,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { chooseAmapMatch } from "../../../../platform/runtime/provider.mjs";
 import { AmapProviderError, amapWebServiceKey, searchAmapPlaces } from "../../../../platform/server/amap-provider";
 import { dataLayer, deny, digest, parseJsonList, routeError } from "../../../../platform/server/planning-runtime";
+import { providerAllowance, recordProviderUsage } from "../../../../platform/server/traveler-quota";
 
 function clean(value: unknown, maximum = 120) {
   return String(value ?? "").trim().slice(0, maximum);
@@ -60,21 +61,11 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const denied = await deny(request);
   if (denied) return denied;
-  let keyReady = false;
-  try {
-    await amapWebServiceKey();
-    keyReady = true;
-  } catch (error) {
-    if (error instanceof AmapProviderError && error.code === "MISSING_KEY") {
-      return Response.json({ error: error.message, required_secret: "AMAP_WEBSERVICE_KEY" }, { status: 503 });
-    }
-    throw error;
-  }
   try {
     const payload = await request.json() as { run_id?: string; limit?: number; retry_failed?: boolean };
     const runId = clean(payload.run_id, 100);
     const limit = Math.max(1, Math.min(5, Math.floor(Number(payload.limit) || 5)));
-    if (!runId || !keyReady) return Response.json({ error: "run_id is required" }, { status: 400 });
+    if (!runId) return Response.json({ error: "run_id is required" }, { status: 400 });
     const { candidates, getDb, planningRunEvents, planningRuns, providerMatches } = await dataLayer();
     const db = getDb();
     const [run] = await db.select().from(planningRuns).where(eq(planningRuns.id, runId)).limit(1);
@@ -83,8 +74,28 @@ export async function POST(request: Request) {
       return Response.json({ error: `POI verification requires shortlisted or verifying stage (current stage: ${run.currentStage})` }, { status: 409 });
     }
     const allCandidates = await db.select().from(candidates).where(eq(candidates.runId, runId)).orderBy(asc(candidates.shortlistRank));
+    const pendingCandidates = allCandidates.filter((item) => ["candidate", "verification_failed"].includes(item.verificationStatus)).length;
+    const allowance = await providerAllowance(run.ownerUserId, "poi", limit);
+    if (!allowance.allowed) {
+      return Response.json({
+        run: { id: runId, current_stage: "verifying", provider_poi_calls: run.providerPoiCalls },
+        processed: 0,
+        remaining: pendingCandidates,
+        attempted_provider_calls: 0,
+        quota_exceeded: true,
+        stopped_early: true,
+        quota: allowance.quota,
+      });
+    }
+    try { await amapWebServiceKey(); }
+    catch (error) {
+      if (error instanceof AmapProviderError && error.code === "MISSING_KEY") {
+        return Response.json({ error: error.message, required_secret: "AMAP_WEBSERVICE_KEY" }, { status: 503 });
+      }
+      throw error;
+    }
     const eligibleStatuses = payload.retry_failed ? new Set(["candidate", "verification_failed"]) : new Set(["candidate"]);
-    const batch = allCandidates.filter((item) => eligibleStatuses.has(item.verificationStatus)).slice(0, limit);
+    const batch = allCandidates.filter((item) => eligibleStatuses.has(item.verificationStatus)).slice(0, allowance.allowed);
     if (!batch.length) {
       return Response.json({
         run: { id: runId, current_stage: "verifying", provider_poi_calls: run.providerPoiCalls },
@@ -166,6 +177,7 @@ export async function POST(request: Request) {
     const refreshed = await db.select().from(candidates).where(eq(candidates.runId, runId));
     const remaining = refreshed.filter((item) => ["candidate", "verification_failed"].includes(item.verificationStatus)).length;
     const now = new Date().toISOString();
+    await recordProviderUsage(run.ownerUserId, runId, "poi", calls, now);
     await db.update(planningRuns).set({
       currentStage: "verifying",
       status: lastError ? "running_with_warnings" : "running",
@@ -185,6 +197,7 @@ export async function POST(request: Request) {
       attempted_provider_calls: calls,
       remaining,
       stopped_early: stop,
+      quota: allowance.quota,
       results,
     }, { status: 200 });
   } catch (error) {

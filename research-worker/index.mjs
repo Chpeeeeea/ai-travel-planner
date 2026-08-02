@@ -255,6 +255,14 @@ async function completeVerification(config, claim) {
     batchCount += 1;
     const result = await api(config, "/api/planning-runs/verify", { method: "POST", body: { run_id: claim.run.id, limit: 5 } });
     log("run.verification_batch", { run_id: claim.run.id, processed: result.processed, remaining: result.remaining });
+    if (result.quota_exceeded) {
+      await leaseAction(config, claim, "release", {
+        release_status: "awaiting_quota",
+        error: `本月高德 POI 核验额度已用完，将在 ${result.quota?.reset_at ?? "下月"} 自动恢复`,
+      });
+      log("run.awaiting_quota", { run_id: claim.run.id, kind: "poi", reset_at: result.quota?.reset_at });
+      return "released";
+    }
     if (result.stopped_early) throw new WorkerError("AMap verification stopped early; the completed subset is preserved");
     if (!result.remaining) return "verifying";
     if (!result.processed) throw new WorkerError("AMap verification made no progress");
@@ -290,6 +298,14 @@ async function completeRoutes(config, claim) {
     batchCount += 1;
     const result = await api(config, "/api/planning-runs/routes", { method: "POST", body: { run_id: claim.run.id, limit: 5 } });
     log("run.route_batch", { run_id: claim.run.id, processed: result.processed, pending: result.pending, fallbacks: result.fallback_segments });
+    if (result.quota_exceeded) {
+      await leaseAction(config, claim, "release", {
+        release_status: "awaiting_quota",
+        error: `本月高德路线额度已用完，将在 ${result.quota?.reset_at ?? "下月"} 自动恢复`,
+      });
+      log("run.awaiting_quota", { run_id: claim.run.id, kind: "route", reset_at: result.quota?.reset_at });
+      return "released";
+    }
     if (result.stopped_early) throw new WorkerError("AMap routing stopped early; completed routes are preserved");
     if (result.run?.current_stage === "published") return "published";
     if (!result.pending && result.run?.current_stage !== "published") throw new WorkerError("Route service finished without publishing", { retryable: false });
@@ -305,6 +321,7 @@ async function advanceRun(config, claim, { agentRunner = runCodex } = {}) {
   if (stage === "verifying") stage = await completeSchedule(config, claim);
   if (stage === "released") return;
   if (["scheduled", "routing"].includes(stage)) stage = await completeRoutes(config, claim);
+  if (stage === "released") return;
   if (stage !== "published") throw new WorkerError(`Worker stopped at unexpected stage ${stage}`, { retryable: false });
   await leaseAction(config, claim, "release", { release_status: "complete" });
   log("run.published", { run_id: claim.run.id });
