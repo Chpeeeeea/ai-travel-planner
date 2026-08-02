@@ -18,6 +18,7 @@ description: "Research-first travel planning platform workflow that compiles off
 5. 外部服务失败时保留已有数据并标注状态，不伪造耗时、距离、开放时间或路线 geometry。
 6. 高德不是发现引擎：研究阶段保持 0 次高德调用，只核验去重评分后的 20–40 个候选，只计算每日相邻行程点。
 7. 平台模式下服从服务端用户配额；收到 `quota_exceeded` 时释放为 `awaiting_quota`，不重试、不绕过，也不创建新的配额 Skill。
+8. 收到 `RUN_CANCELED` 或租约失效时立即停止当前 PlanningRun，不重试、不继续下一批，也不把取消当成新的研究阶段。
 
 ## 开始前读取
 
@@ -231,5 +232,6 @@ python scripts/render_trip.py --input trip.json --output output
 - 新 provider 通过相同 `PlaceProvider` / `RouteProvider` 契约接入。
 - 将平台运行按 `brief -> researching -> shortlisted -> verifying -> scheduled -> routing -> published` 持久化；重跑从最近完成阶段继续，不能无条件重新消耗供应商额度。
 - 让一个或多个同构 Research Worker 服务共享 PlanningRun 队列；Skill 负责研究和阶段契约，用户配额、身份与分享权限由网站后端和数据库强制。
+- 把取消与归档留在网站生命周期层：取消必须使租约和后续阶段写入失效，归档只改变旅行者列表可见性，不删除研究证据或供应商用量。
 - 发现失败案例时，先补 fixture 和校验规则，再修改提示词。
 - TREK 仅作为架构参照；不要复制其 AGPL-3.0 代码进入本 Skill。

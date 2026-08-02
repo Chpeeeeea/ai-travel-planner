@@ -44,6 +44,12 @@ export function routeError(error: unknown) {
   return message;
 }
 
+export function canceledRunResponse(run: { status: string }) {
+  return run.status === "canceled"
+    ? Response.json({ error: "PlanningRun was canceled by the traveler", code: "RUN_CANCELED" }, { status: 409 })
+    : null;
+}
+
 export function parseJsonList(value: string | null | undefined) {
   if (!value) return [];
   try {

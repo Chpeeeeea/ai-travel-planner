@@ -1,6 +1,6 @@
 import { and, asc, eq } from "drizzle-orm";
 import { getChatGPTUser } from "../../../chatgpt-auth";
-import { dataLayer, parseJsonList, routeError } from "../../../../platform/server/planning-runtime";
+import { canceledRunResponse, dataLayer, parseJsonList, routeError } from "../../../../platform/server/planning-runtime";
 
 function sameOrigin(request: Request) {
   const origin = request.headers.get("origin");
@@ -86,6 +86,8 @@ export async function PATCH(request: Request) {
       .where(and(eq(candidates.id, candidateId), eq(candidates.runId, runId)))
       .limit(1);
     if (!run || !candidate) return Response.json({ error: "Travel plan or candidate not found" }, { status: 404 });
+    const canceled = canceledRunResponse(run);
+    if (canceled) return canceled;
     if (run.currentStage !== "verifying" || candidate.verificationStatus !== "needs_confirmation") {
       return Response.json({ error: "This POI no longer requires confirmation" }, { status: 409 });
     }

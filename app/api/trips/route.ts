@@ -1,6 +1,7 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { getChatGPTUser } from "../../chatgpt-auth";
 import { normalizeBrief } from "../../../platform/runtime/brief.mjs";
+import { canArchiveRun, canCancelRun } from "../../../platform/runtime/run-lifecycle.mjs";
 import { dataLayer, digest, routeError, stageOrder } from "../../../platform/server/planning-runtime";
 import { creationQuotaError, travelerQuota } from "../../../platform/server/traveler-quota";
 
@@ -22,6 +23,7 @@ function publicRun(run: {
   providerPoiCalls: number;
   providerRouteCalls: number;
   lastError: string | null;
+  archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }) {
@@ -35,6 +37,7 @@ function publicRun(run: {
     provider_poi_calls: run.providerPoiCalls,
     provider_route_calls: run.providerRouteCalls,
     last_error: run.lastError,
+    archived_at: run.archivedAt,
     created_at: run.createdAt,
     updated_at: run.updatedAt,
   };
@@ -45,6 +48,7 @@ export async function GET(request: Request) {
   if (!user) return unauthorized();
   try {
     const runId = new URL(request.url).searchParams.get("run_id")?.trim() ?? "";
+    const archiveMode = new URL(request.url).searchParams.get("archived") === "only";
     const {
       assignments, candidates, getDb, itineraryDays, planningBriefs, planningRunEvents,
       planningRuns, providerMatches, researchEvidence, researchLaneJobs, routeSegments,
@@ -53,7 +57,10 @@ export async function GET(request: Request) {
     const quota = await travelerQuota(user.userId);
     if (!runId) {
       const runs = await db.select().from(planningRuns)
-        .where(eq(planningRuns.ownerUserId, user.userId))
+        .where(and(
+          eq(planningRuns.ownerUserId, user.userId),
+          archiveMode ? isNotNull(planningRuns.archivedAt) : isNull(planningRuns.archivedAt),
+        ))
         .orderBy(desc(planningRuns.updatedAt))
         .limit(20);
       return Response.json({ runs: runs.map(publicRun), quota });
@@ -122,6 +129,75 @@ export async function GET(request: Request) {
       },
       quota,
     });
+  } catch (error) {
+    return Response.json({ error: routeError(error) }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request) {
+  const user = await getChatGPTUser();
+  if (!user) return unauthorized();
+  if (!sameOrigin(request)) return Response.json({ error: "Cross-origin writes are not allowed" }, { status: 403 });
+  try {
+    const payload = await request.json() as { run_id?: string; action?: "cancel" | "archive" | "restore" };
+    const runId = String(payload.run_id ?? "").trim().slice(0, 100);
+    const action = payload.action;
+    if (!runId || !action || !["cancel", "archive", "restore"].includes(action)) {
+      return Response.json({ error: "run_id and a valid lifecycle action are required" }, { status: 400 });
+    }
+    const { getDb, planningRunEvents, planningRuns, researchLaneJobs } = await dataLayer();
+    const db = getDb();
+    const [run] = await db.select().from(planningRuns)
+      .where(and(eq(planningRuns.id, runId), eq(planningRuns.ownerUserId, user.userId)))
+      .limit(1);
+    if (!run) return Response.json({ error: "Travel plan not found" }, { status: 404 });
+    const now = new Date().toISOString();
+
+    if (action === "cancel") {
+      if (run.status !== "canceled" && !canCancelRun(run)) {
+        return Response.json({ error: "Finished travel plans cannot be canceled; archive them instead" }, { status: 409 });
+      }
+      if (run.status !== "canceled") {
+        await db.batch([
+          db.update(planningRuns).set({
+            status: "canceled",
+            leaseOwner: null,
+            leaseTokenHash: null,
+            leaseExpiresAt: null,
+            lastError: null,
+            updatedAt: now,
+          }).where(and(eq(planningRuns.id, runId), eq(planningRuns.ownerUserId, user.userId))),
+          db.update(researchLaneJobs).set({ status: "canceled", lastError: null, completedAt: now, updatedAt: now })
+            .where(and(eq(researchLaneJobs.runId, runId), inArray(researchLaneJobs.status, ["queued", "running", "failed"]))),
+          db.insert(planningRunEvents).values({
+            id: crypto.randomUUID(), runId, fromStage: run.currentStage, toStage: run.currentStage,
+            status: "canceled_by_traveler", message: "旅行者已停止任务；现有研究、候选与调用记录保留", createdAt: now,
+          }),
+        ]);
+      }
+    } else if (action === "archive") {
+      if (!canArchiveRun(run)) return Response.json({ error: "Stop or finish this travel task before archiving it" }, { status: 409 });
+      if (!run.archivedAt) {
+        await db.batch([
+          db.update(planningRuns).set({ archivedAt: now, updatedAt: now }).where(and(eq(planningRuns.id, runId), eq(planningRuns.ownerUserId, user.userId))),
+          db.insert(planningRunEvents).values({
+            id: crypto.randomUUID(), runId, fromStage: run.currentStage, toStage: run.currentStage,
+            status: "archived_by_traveler", message: "旅行者已归档任务", createdAt: now,
+          }),
+        ]);
+      }
+    } else if (run.archivedAt) {
+      await db.batch([
+        db.update(planningRuns).set({ archivedAt: null, updatedAt: now }).where(and(eq(planningRuns.id, runId), eq(planningRuns.ownerUserId, user.userId))),
+        db.insert(planningRunEvents).values({
+          id: crypto.randomUUID(), runId, fromStage: run.currentStage, toStage: run.currentStage,
+          status: "restored_by_traveler", message: "旅行者已将任务移回工作台", createdAt: now,
+        }),
+      ]);
+    }
+
+    const [updated] = await db.select().from(planningRuns).where(eq(planningRuns.id, runId)).limit(1);
+    return Response.json({ run: publicRun(updated), quota: await travelerQuota(user.userId) });
   } catch (error) {
     return Response.json({ error: routeError(error) }, { status: 500 });
   }

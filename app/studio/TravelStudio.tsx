@@ -20,12 +20,12 @@ const stages = [
 const stageIndex = new Map(stages.map((stage, index) => [stage[0], index]));
 const themeCatalog = TRAVEL_TOPICS as ReadonlyArray<{ id: string; label: string; scope: string }>;
 const laneLabels: Record<string, string> = Object.fromEntries(themeCatalog.map((theme) => [theme.id, theme.label]));
-const laneStatusLabels: Record<string, string> = { queued: "等待", running: "检索中", succeeded: "完成", failed: "待重试" };
+const laneStatusLabels: Record<string, string> = { queued: "等待", running: "检索中", succeeded: "完成", failed: "待重试", canceled: "已停止" };
 
 type BriefDraft = { destination: string; days: number; interests: string[]; mustEat: string[]; mustVisit: string[] };
 type RunSummary = {
   id: string; destination: string; days: number; status: string; current_stage: string; stage_index: number;
-  provider_poi_calls: number; provider_route_calls: number; last_error: string | null; created_at: string; updated_at: string;
+  provider_poi_calls: number; provider_route_calls: number; last_error: string | null; archived_at: string | null; created_at: string; updated_at: string;
 };
 type TravelerQuota = {
   limits: { active_runs: number; monthly_runs: number; monthly_poi_calls: number; monthly_route_calls: number };
@@ -52,6 +52,7 @@ function splitNeeds(value: string) { return [...new Set(value.split(/[，,、\n]
 function dateText(value: string) { return new Intl.DateTimeFormat("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(value)); }
 
 function nextStatement(stage: string) {
+  if (stage === "canceled") return "任务已经停止。已有研究、候选和供应商调用记录会保留；你可以归档它，或新建一份旅行需求。";
   if (stage === "brief") return "接下来：Research Worker 读取 Brief，按你选择的主题并行检索官方文旅、小红书、OSM 与开放 Web。此阶段高德调用必须为 0。";
   if (stage === "researching") return "接下来：把多条研究证据编译成名称级候选池，合并别名并缩小到 20–40 个。";
   if (stage === "shortlisted") return "接下来：高德只核验最终候选；同名或跨城结果会进入人工确认。";
@@ -74,6 +75,8 @@ export default function TravelStudio({ user, initialBrief, initialRunId }: {
   const [activeRunId, setActiveRunId] = useState(initialRunId);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [creating, setCreating] = useState(false);
+  const [lifecycleBusy, setLifecycleBusy] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const [error, setError] = useState("");
   const [quota, setQuota] = useState<TravelerQuota | null>(null);
 
@@ -82,13 +85,13 @@ export default function TravelStudio({ user, initialBrief, initialRunId }: {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/trips").then(async (response) => {
+    fetch(showArchived ? "/api/trips?archived=only" : "/api/trips").then(async (response) => {
       if (!response.ok) throw new Error("无法读取旅行任务");
       const data = await response.json() as { runs?: RunSummary[]; quota?: TravelerQuota; error?: string };
       if (!cancelled) { setRuns(data.runs ?? []); setQuota(data.quota ?? null); }
     }).catch((reason) => { if (!cancelled) setError(reason instanceof Error ? reason.message : "无法读取旅行任务"); });
     return () => { cancelled = true; };
-  }, []);
+  }, [showArchived]);
 
   useEffect(() => {
     if (!activeRunId) return;
@@ -106,7 +109,7 @@ export default function TravelStudio({ user, initialBrief, initialRunId }: {
         setQuota(data.quota);
         setError("");
         setRuns((current) => [data.run, ...current.filter((item) => item.id !== data.run.id)]);
-        if (data.run.current_stage !== "published" && data.run.status !== "failed") timer = setTimeout(poll, data.run.status === "awaiting_quota" ? 60_000 : 5000);
+        if (data.run.current_stage !== "published" && !["failed", "canceled"].includes(data.run.status)) timer = setTimeout(poll, data.run.status === "awaiting_quota" ? 60_000 : 5000);
       } catch (reason) {
         if (cancelled || (reason instanceof DOMException && reason.name === "AbortError")) return;
         setError(reason instanceof Error ? reason.message : "无法读取任务进度");
@@ -159,6 +162,39 @@ export default function TravelStudio({ user, initialBrief, initialRunId }: {
     window.history.replaceState({}, "", `/studio?run_id=${encodeURIComponent(run.id)}`);
   }
 
+  async function changeLifecycle(action: "cancel" | "archive" | "restore") {
+    if (!snapshot || lifecycleBusy) return;
+    const prompt = action === "cancel"
+      ? "停止后，Research Worker 将不能继续这个任务。已经完成的研究和高德调用记录会保留。确定停止吗？"
+      : action === "archive" ? "归档后，该任务会从当前任务列表移除。确定归档吗？" : "将这个任务移回当前任务列表？";
+    if (!window.confirm(prompt)) return;
+    setLifecycleBusy(true);
+    setError("");
+    try {
+      const response = await fetch("/api/trips", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ run_id: snapshot.run.id, action }),
+      });
+      const data = await response.json() as { run?: RunSummary; quota?: TravelerQuota; error?: string };
+      if (!response.ok || !data.run) throw new Error(data.error || "无法更新任务");
+      setQuota(data.quota ?? quota);
+      if (action === "cancel") {
+        setSnapshot((current) => current ? { ...current, run: data.run! } : current);
+        setRuns((current) => [data.run!, ...current.filter((item) => item.id !== data.run!.id)]);
+      } else {
+        setRuns((current) => current.filter((item) => item.id !== data.run!.id));
+        setSnapshot(null);
+        setActiveRunId("");
+        window.history.replaceState({}, "", "/studio");
+      }
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "无法更新任务");
+    } finally {
+      setLifecycleBusy(false);
+    }
+  }
+
   function toggleTheme(theme: string) {
     setDraft((current) => ({
       ...current,
@@ -180,9 +216,10 @@ export default function TravelStudio({ user, initialBrief, initialRunId }: {
       </section>
       <div className={styles.layout}>
         <aside className={styles.sidebar}>
-          <div className={styles.sectionTitle}><span>我的任务</span><b>{runs.length}</b></div>
-          <button className={!activeRunId ? styles.activeRun : ""} onClick={() => { setSnapshot(null); setActiveRunId(""); window.history.replaceState({}, "", "/studio"); }}>＋ 新建旅行</button>
-          <div className={styles.runList}>{runs.map((run) => <button key={run.id} className={run.id === activeRunId ? styles.activeRun : ""} onClick={() => chooseRun(run)}><strong>{run.destination} · {run.days} 天</strong><span>{stages[stageIndex.get(run.current_stage as typeof stages[number][0]) ?? 0][1]} · {dateText(run.updated_at)}</span></button>)}</div>
+          <div className={styles.sectionTitle}><span>{showArchived ? "已归档" : "我的任务"}</span><b>{runs.length}</b></div>
+          <button className={!activeRunId && !showArchived ? styles.activeRun : ""} onClick={() => { setSnapshot(null); setActiveRunId(""); setShowArchived(false); window.history.replaceState({}, "", "/studio"); }}>＋ 新建旅行</button>
+          <button className={styles.archiveToggle} onClick={() => { setSnapshot(null); setActiveRunId(""); setShowArchived((current) => !current); window.history.replaceState({}, "", "/studio"); }}>{showArchived ? "← 返回当前任务" : "查看已归档任务"}</button>
+          <div className={styles.runList}>{runs.map((run) => <button key={run.id} className={run.id === activeRunId ? styles.activeRun : ""} onClick={() => chooseRun(run)}><strong>{run.destination} · {run.days} 天</strong><span>{run.status === "canceled" ? "已停止" : stages[stageIndex.get(run.current_stage as typeof stages[number][0]) ?? 0][1]} · {dateText(run.updated_at)}</span></button>)}</div>
         </aside>
 
         {!activeRunId ? (
@@ -199,9 +236,9 @@ export default function TravelStudio({ user, initialBrief, initialRunId }: {
           </section>
         ) : snapshot ? (
           <section className={styles.progressPanel}>
-            <header className={styles.runHeader}><div><p>PLANNING RUN</p><h2>{snapshot.run.destination} · {snapshot.run.days} 天</h2><span>任务 {snapshot.run.id.slice(0, 8)} · {dateText(snapshot.run.updated_at)} 更新</span></div><div><b>{snapshot.progress.evidence_total}</b><span>研究证据</span><b>{snapshot.run.provider_poi_calls}</b><span>POI 调用</span><b>{snapshot.run.provider_route_calls}</b><span>路线调用</span></div></header>
+            <header className={styles.runHeader}><div><p>PLANNING RUN</p><h2>{snapshot.run.destination} · {snapshot.run.days} 天</h2><span>任务 {snapshot.run.id.slice(0, 8)} · {dateText(snapshot.run.updated_at)} 更新</span><nav className={styles.lifecycleActions}>{snapshot.run.archived_at ? <button disabled={lifecycleBusy} onClick={() => changeLifecycle("restore")}>移回工作台</button> : snapshot.run.status === "canceled" || snapshot.run.status === "failed" || snapshot.run.current_stage === "published" ? <button disabled={lifecycleBusy} onClick={() => changeLifecycle("archive")}>归档任务</button> : <button className={styles.dangerAction} disabled={lifecycleBusy} onClick={() => changeLifecycle("cancel")}>停止任务</button>}</nav></div><div><b>{snapshot.progress.evidence_total}</b><span>研究证据</span><b>{snapshot.run.provider_poi_calls}</b><span>POI 调用</span><b>{snapshot.run.provider_route_calls}</b><span>路线调用</span></div></header>
             <ol className={styles.stageList}>{stages.map(([id, title, copy], index) => { const state = index < currentIndex ? "done" : index === currentIndex ? "active" : "waiting"; return <li key={id} data-state={state}><i>{state === "done" ? "✓" : String(index + 1).padStart(2,"0")}</i><div><strong>{title}</strong><span>{copy}</span></div><em>{state === "done" ? "完成" : state === "active" ? "当前" : "等待"}</em></li>; })}</ol>
-            <div className={styles.nextStep}><span>下一步声明</span><p>{nextStatement(snapshot.run.status === "awaiting_quota" ? "awaiting_quota" : snapshot.run.current_stage)}</p>{snapshot.run.current_stage === "brief" && <small>任务已进入持久化队列，等待 Research Worker 领取；没有真实证据前不会伪造候选或地图结果。</small>}{snapshot.worker.active && <small>Research Worker 正在执行第 {snapshot.worker.attempt} 次尝试，租约到期前会持续发送心跳。</small>}</div>
+            <div className={styles.nextStep}><span>下一步声明</span><p>{nextStatement(snapshot.run.status === "awaiting_quota" ? "awaiting_quota" : snapshot.run.status === "canceled" ? "canceled" : snapshot.run.current_stage)}</p>{snapshot.run.current_stage === "brief" && snapshot.run.status !== "canceled" && <small>任务已进入持久化队列，等待 Research Worker 领取；没有真实证据前不会伪造候选或地图结果。</small>}{snapshot.worker.active && snapshot.run.status !== "canceled" && <small>Research Worker 正在执行第 {snapshot.worker.attempt} 次尝试，租约到期前会持续发送心跳。</small>}</div>
             <div className={styles.metrics}>
               <article><span>已选主题研究线</span><div>{(snapshot.progress.research_lanes.length ? snapshot.progress.research_lanes : Object.entries(snapshot.progress.evidence_by_lane).map(([lane, count]) => ({ lane, topic_label: laneLabels[lane] ?? lane, status: count ? "running" : "queued", attempt_count: 0, evidence_count: count, last_error: null }))).map((job) => <p key={job.lane} title={job.last_error ?? ""}><b>{job.topic_label || laneLabels[job.lane] || job.lane} · {laneStatusLabels[job.status] ?? job.status}</b><i>{job.evidence_count}</i></p>)}</div></article>
               <article><span>候选与核验</span><p><b>最终候选</b><i>{snapshot.progress.shortlisted}</i></p><p><b>已核验</b><i>{snapshot.progress.verified}</i></p><p><b>待消歧</b><i>{snapshot.progress.needs_confirmation}</i></p></article>

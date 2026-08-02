@@ -2,7 +2,7 @@ import { asc, eq } from "drizzle-orm";
 import { normalizeAmapRoute, straightLineFallback } from "../../../../platform/runtime/provider.mjs";
 import { routeModeForPair } from "../../../../platform/runtime/schedule.mjs";
 import { AmapProviderError, amapWebServiceKey, requestAmapRoute, type AmapRouteMode } from "../../../../platform/server/amap-provider";
-import { dataLayer, deny, digest, routeError } from "../../../../platform/server/planning-runtime";
+import { canceledRunResponse, dataLayer, deny, digest, routeError } from "../../../../platform/server/planning-runtime";
 import { providerAllowance, recordProviderUsage } from "../../../../platform/server/traveler-quota";
 
 function chunks<T>(items: T[], size: number) {
@@ -87,6 +87,8 @@ export async function POST(request: Request) {
     let data = await routeData(runId);
     const [run] = await data.db.select().from(planningRuns).where(eq(planningRuns.id, runId)).limit(1);
     if (!run) return Response.json({ error: "PlanningRun not found" }, { status: 404 });
+    const canceled = canceledRunResponse(run);
+    if (canceled) return canceled;
     if (run.currentStage === "published") {
       return Response.json({ run: { id: runId, current_stage: "published", provider_route_calls: run.providerRouteCalls }, idempotent: true });
     }
@@ -220,6 +222,18 @@ export async function POST(request: Request) {
     const providerRouteCalls = run.providerRouteCalls + calls;
     const usageCreatedAt = new Date().toISOString();
     await recordProviderUsage(run.ownerUserId, runId, "route", calls, usageCreatedAt);
+    const [latestRun] = await refreshed.db.select().from(planningRuns).where(eq(planningRuns.id, runId)).limit(1);
+    if (latestRun?.status === "canceled") {
+      await refreshed.db.batch([
+        refreshed.db.update(planningRuns).set({ providerRouteCalls: latestRun.providerRouteCalls + calls, updatedAt: usageCreatedAt }).where(eq(planningRuns.id, runId)),
+        refreshed.db.insert(planningRunEvents).values({
+          id: crypto.randomUUID(), runId, fromStage: latestRun.currentStage, toStage: latestRun.currentStage,
+          status: "canceled_after_provider_batch", poiCalls: 0, routeCalls: calls,
+          message: `Cancellation arrived during a route batch; recorded ${calls} completed provider calls and stopped further work`, createdAt: usageCreatedAt,
+        }),
+      ]);
+      return Response.json({ error: "PlanningRun was canceled by the traveler", code: "RUN_CANCELED", attempted_provider_calls: calls }, { status: 409 });
+    }
     await refreshed.db.update(planningRuns).set({
       currentStage: complete ? "published" : "routing",
       status: complete ? (fallbacks ? "complete_with_warnings" : "complete") : (lastError ? "running_with_warnings" : "running"),

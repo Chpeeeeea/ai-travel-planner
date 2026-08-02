@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { normalizeBrief } from "../../../platform/runtime/brief.mjs";
-import { dataLayer, deny, digest, routeError, stageOrder, type RunStage } from "../../../platform/server/planning-runtime";
+import { canceledRunResponse, dataLayer, deny, digest, routeError, stageOrder, type RunStage } from "../../../platform/server/planning-runtime";
 
 export async function GET(request: Request) {
   const denied = await deny(request);
@@ -63,6 +63,8 @@ export async function PATCH(request: Request) {
     const db = getDb();
     const [current] = await db.select().from(planningRuns).where(eq(planningRuns.id, payload.id)).limit(1);
     if (!current) return Response.json({ error: "PlanningRun not found" }, { status: 404 });
+    const canceled = canceledRunResponse(current);
+    if (canceled) return canceled;
     const fromIndex = stageOrder.indexOf(current.currentStage as RunStage);
     const toIndex = stageOrder.indexOf(payload.to_stage);
     if (toIndex < fromIndex || toIndex > fromIndex + 1) {

@@ -277,6 +277,37 @@ test("enforces traveler quotas and revocable read-only shares in durable storage
   assert.doesNotMatch(sharePage, /requireChatGPTUser/);
 });
 
+test("lets travelers stop, archive and restore tasks without reviving worker writes", async () => {
+  const schema = await readFile(new URL("../db/schema.ts", import.meta.url), "utf8");
+  const migration = await readFile(new URL("../drizzle/0005_sour_mister_fear.sql", import.meta.url), "utf8");
+  const tripsApi = await readFile(new URL("../app/api/trips/route.ts", import.meta.url), "utf8");
+  const studio = await readFile(new URL("../app/studio/TravelStudio.tsx", import.meta.url), "utf8");
+  const quota = await readFile(new URL("../platform/server/traveler-quota.ts", import.meta.url), "utf8");
+  const guardedApis = await Promise.all([
+    "../app/api/planning-runs/route.ts",
+    "../app/api/planning-runs/research/route.ts",
+    "../app/api/planning-runs/compile/route.ts",
+    "../app/api/planning-runs/verify/route.ts",
+    "../app/api/planning-runs/schedule/route.ts",
+    "../app/api/planning-runs/routes/route.ts",
+    "../app/api/trips/disambiguation/route.ts",
+    "../app/api/trips/itinerary/route.ts",
+  ].map((path) => readFile(new URL(path, import.meta.url), "utf8")));
+  assert.match(schema, /archivedAt: text\("archived_at"\)/);
+  assert.match(migration, /ALTER TABLE `planning_runs` ADD `archived_at` text/);
+  assert.match(tripsApi, /action\?: "cancel" \| "archive" \| "restore"/);
+  assert.match(tripsApi, /leaseTokenHash: null/);
+  assert.match(tripsApi, /canceled_by_traveler/);
+  assert.match(tripsApi, /archived_by_traveler/);
+  assert.match(tripsApi, /restored_by_traveler/);
+  assert.match(tripsApi, /isNull\(planningRuns\.archivedAt\)/);
+  assert.match(quota, /INACTIVE_RUN_STATUSES/);
+  assert.match(studio, /停止任务/);
+  assert.match(studio, /查看已归档任务/);
+  assert.match(studio, /移回工作台/);
+  for (const source of guardedApis) assert.match(source, /canceledRunResponse/);
+});
+
 test("keeps research ingestion and candidate compilation provider-free", async () => {
   const researchApi = await readFile(new URL("../app/api/planning-runs/research/route.ts", import.meta.url), "utf8");
   const compileApi = await readFile(new URL("../app/api/planning-runs/compile/route.ts", import.meta.url), "utf8");
