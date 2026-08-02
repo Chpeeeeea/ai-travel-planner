@@ -24,6 +24,12 @@ test("server-renders the platform product home", async () => {
   assert.match(html, /官方文旅/);
   assert.match(html, /小红书/);
   assert.match(html, /OSM/);
+  assert.match(html, /38 主题 Agent/);
+  assert.match(html, /高德 POI/);
+  assert.match(html, /真实道路/);
+  assert.match(html, /产品能力/);
+  assert.match(html, /工作流程/);
+  assert.match(html, /开始规划/);
   assert.match(html, /20–40/);
   assert.match(html, /特别想吃/);
   assert.match(html, /必去地点/);
