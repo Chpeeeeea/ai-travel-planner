@@ -9,10 +9,12 @@ import styles from "./platform.module.css";
 const themeCatalog = TRAVEL_TOPICS as ReadonlyArray<{ id: string; label: string; scope: string }>;
 const defaultThemes = themeCatalog.filter((theme) => DEFAULT_TRAVEL_TOPIC_IDS.includes(theme.id)).map((theme) => theme.label);
 const sources = [
-  ["官方文旅", "确认事实、开放规则和目的地脉络"],
-  ["小红书", "发现真实体验、店铺和现场摩擦"],
-  ["OSM", "补充名称、区域与开放地理线索"],
-  ["多主题研究", "按用户选择动态派发专题研究 Agent"],
+  ["官方文旅", "确认事实与开放规则"],
+  ["小红书", "发现体验与现场摩擦"],
+  ["OSM", "补充开放地理线索"],
+  ["38 主题 Agent", "按实际偏好动态研究"],
+  ["高德 POI", "只核验最终候选"],
+  ["真实道路", "只计算相邻行程点"],
 ];
 const stages = [
   ["01", "旅行 Brief", "目的地、天数、偏好和节奏"],
@@ -88,7 +90,7 @@ export default function PlatformHome() {
     <main className={styles.page}>
       <nav className={styles.nav}>
         <Link href="/" className={styles.brand}><span>行</span><b>AI Travel Planner</b></Link>
-        <div><Link href="#flow">工作方式</Link><Link href="/cases/qingtian">青田案例</Link><Link href="/case-study">产品作品集</Link></div>
+        <div><Link href="#capabilities">产品能力</Link><Link href="#flow">工作流程</Link><Link href="#cases">案例</Link><Link href="/studio" className={styles.navCta}>开始规划</Link></div>
       </nav>
 
       <section className={styles.hero}>
@@ -97,6 +99,7 @@ export default function PlatformHome() {
           <h1>先把一座城市研究明白，<br />再排成真正走得通的旅行。</h1>
           <p>官方资料负责事实，旅行平台负责发现，地图只核验最终地点和真实道路。更少的地图调用，也更少“看起来合理”的错误推荐。</p>
           <div className={styles.heroProof}>
+            <span><b>38</b> 个研究主题</span>
             <span><b>20–40</b> 个最终核验候选</span>
             <span><b>4–6</b> 个每日地点</span>
             <span><b>N−1</b> 段真实路线</span>
@@ -131,8 +134,8 @@ export default function PlatformHome() {
         </form>
       </section>
 
-      <section className={styles.sourceBand} aria-label="研究来源">
-        {sources.map(([title, copy], index) => <article key={title}><span>0{index + 1}</span><div><h2>{title}</h2><p>{copy}</p></div></article>)}
+      <section id="capabilities" className={styles.sourceBand} aria-label="平台能力与依赖">
+        {sources.map(([title, copy], index) => <article key={title}><span>{String(index + 1).padStart(2, "0")}</span><div><h2>{title}</h2><p>{copy}</p></div></article>)}
       </section>
 
       <section id="flow" className={styles.flowSection}>
@@ -148,7 +151,7 @@ export default function PlatformHome() {
         </div>
       </section>
 
-      <section className={styles.caseSection}>
+      <section id="cases" className={styles.caseSection}>
         <div><p className={styles.kicker}>FIRST REFERENCE CASE</p><h2>青田三日只是案例，平台流程才是产品。</h2><p>这条案例验证了多主题研究、21 个真实高德 POI、15 段相邻路线，以及卡片和地图的双向联动。</p><div className={styles.caseActions}><Link href="/cases/qingtian">打开青田案例</Link><Link href="/case-study">查看产品作品集</Link></div></div>
         <aside><span>CASE / 001</span><strong>青田县</strong><p>3 DAYS · FOOD / CULTURE / SCENERY / HISTORY</p><dl><div><dt>候选核验</dt><dd>21</dd></div><div><dt>每日地点</dt><dd>5–6</dd></div><div><dt>真实路线</dt><dd>15</dd></div></dl></aside>
       </section>
