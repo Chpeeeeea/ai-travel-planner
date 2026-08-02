@@ -8,7 +8,7 @@ import { topicsForInterests, topicFor } from "../platform/runtime/travel-topics.
 const workerDirectory = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = resolve(workerDirectory, "..");
 const outputSchema = join(workerDirectory, "lane-output.schema.json");
-const workerVersion = "0.14.0";
+const workerVersion = "0.15.0";
 const childSecretNames = ["PLANNER_BASE_URL", "PLANNING_RUN_WRITE_TOKEN", "AMAP_WEBSERVICE_KEY", "AMAP_SECURITY_JS_CODE", "AMAP_JSAPI_KEY"];
 
 class WorkerError extends Error {
@@ -74,16 +74,33 @@ async function checkCodex(config) {
 }
 
 async function healthCheck(config) {
-  const [codexVersion, planningRuns] = await Promise.all([
+  const [codexVersion, operations] = await Promise.all([
     checkCodex(config),
-    api(config, "/api/planning-runs"),
+    api(config, "/api/planning-runs/ops"),
   ]);
   log("worker.check_succeeded", {
     worker_id: config.workerId,
     version: workerVersion,
     codex: codexVersion,
     planner_api: "reachable",
-    recent_runs: Array.isArray(planningRuns?.runs) ? planningRuns.runs.length : 0,
+    platform_state: operations?.state ?? "unknown",
+    claimable_runs: operations?.queue?.claimable ?? 0,
+    active_leases: operations?.queue?.active_leases ?? 0,
+    attention: operations?.attention ?? [],
+  });
+}
+
+async function statusCheck(config) {
+  const operations = await api(config, "/api/planning-runs/ops");
+  log("worker.status", {
+    worker_id: config.workerId,
+    version: workerVersion,
+    platform_state: operations?.state ?? "unknown",
+    queue: operations?.queue ?? {},
+    runs: operations?.runs ?? {},
+    research_lanes: operations?.research_lanes ?? {},
+    provider_usage: operations?.provider_usage ?? {},
+    attention: operations?.attention ?? [],
   });
 }
 
@@ -358,6 +375,10 @@ async function processOne(config) {
 
 async function main() {
   const config = configFromEnvironment();
+  if (process.argv.includes("--status")) {
+    await statusCheck(config);
+    return;
+  }
   if (process.argv.includes("--check")) {
     await healthCheck(config);
     return;
