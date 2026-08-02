@@ -8,7 +8,7 @@ import { topicsForInterests, topicFor } from "../platform/runtime/travel-topics.
 const workerDirectory = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = resolve(workerDirectory, "..");
 const outputSchema = join(workerDirectory, "lane-output.schema.json");
-const workerVersion = "0.12.1";
+const workerVersion = "0.12.2";
 const childSecretNames = ["PLANNER_BASE_URL", "PLANNING_RUN_WRITE_TOKEN", "AMAP_WEBSERVICE_KEY", "AMAP_SECURITY_JS_CODE", "AMAP_JSAPI_KEY"];
 
 class WorkerError extends Error {
