@@ -61,6 +61,14 @@ npm.cmd run worker:research -- --watch
 npm.cmd run worker:research -- --check
 ```
 
+只查看聚合运维状态，不启动 Codex、不领取任务：
+
+```powershell
+npm.cmd run worker:research -- --status
+```
+
+`--status` 返回队列深度、活动与过期租约、运行阶段、研究线状态和当月 POI/路线总调用量。接口不会返回目的地、Brief、用户标识、租约 Token 或任何高德密钥，可用于人工巡检和后续告警。
+
 日志输出为 JSON Lines，不打印租约 Token、平台 Token 或高德密钥。
 
 ## 部署边界
@@ -80,7 +88,7 @@ Worker 不应与公开网页运行在同一个浏览器进程，也不应把 Cod
 3. Node.js 22、npm 10、Git 和 Codex CLI；在服务用户身份下完成 Codex 登录，或用独立的 `CODEX_API_KEY` 环境文件。
 4. 从仓库固定提交使用 `.agents/skills/ai-travel-planner`，并在同一服务用户环境安装 `vibe-web-research`。不要把本机临时 Skill 副本手工粘贴成无版本依赖。
 5. 在 `/etc/ai-travel-planner/worker.env` 写入与 Sites 相同的 `PLANNING_RUN_WRITE_TOKEN`，权限设为 root 所有、`0600`；不要把令牌写进仓库、命令历史或 systemd unit。
-6. 先运行 `npm run worker:research -- --check`，再安装并启动 systemd 服务；日志通过 `journalctl -u ai-travel-planner-worker` 查看。
+6. 先运行 `npm run worker:research -- --check`，再用 `--status` 确认队列与租约状态，最后安装并启动 systemd 服务；日志通过 `journalctl -u ai-travel-planner-worker` 查看。
 
 ```bash
 sudo install -d -o ai-travel -g ai-travel /opt/ai-travel-planner

@@ -60,7 +60,8 @@ test("ships a low-memory service profile and a non-claiming worker check", async
   const service = await readFile(new URL("../research-worker/ai-travel-planner-worker.service", import.meta.url), "utf8");
   const environment = await readFile(new URL("../research-worker/worker.env.example", import.meta.url), "utf8");
   assert.match(worker, /process\.argv\.includes\("--check"\)/);
-  assert.match(worker, /api\(config, "\/api\/planning-runs"\)/);
+  assert.match(worker, /process\.argv\.includes\("--status"\)/);
+  assert.match(worker, /api\(config, "\/api\/planning-runs\/ops"\)/);
   assert.match(worker, /isolatedChildEnvironment/);
   assert.match(service, /ExecStartPre=.*--check/);
   assert.match(service, /MemoryMax=1800M/);
