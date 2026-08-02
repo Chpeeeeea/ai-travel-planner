@@ -233,5 +233,6 @@ python scripts/render_trip.py --input trip.json --output output
 - 将平台运行按 `brief -> researching -> shortlisted -> verifying -> scheduled -> routing -> published` 持久化；重跑从最近完成阶段继续，不能无条件重新消耗供应商额度。
 - 让一个或多个同构 Research Worker 服务共享 PlanningRun 队列；Skill 负责研究和阶段契约，用户配额、身份与分享权限由网站后端和数据库强制。
 - 把取消与归档留在网站生命周期层：取消必须使租约和后续阶段写入失效，归档只改变旅行者列表可见性，不删除研究证据或供应商用量。
+- 运维监控属于受服务器令牌保护的平台层，只输出队列、租约、研究线和供应商用量聚合；不得向研究 Agent 或浏览器暴露 Brief、用户标识、租约 Token、高德密钥或逐用户明细。
 - 发现失败案例时，先补 fixture 和校验规则，再修改提示词。
 - TREK 仅作为架构参照；不要复制其 AGPL-3.0 代码进入本 Skill。

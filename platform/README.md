@@ -48,6 +48,7 @@ python platform/pipeline.py audit --input itinerary.json
 6. `POST /api/planning-runs/schedule` 只从已核验地点生成每天 4–6 个地点。
 7. `POST /api/planning-runs/routes` 创建同日相邻 RouteSegment，并每批最多计算 5 段真实道路。
 8. `GET /api/planning-runs/trip?run_id=...` 输出卡片与地图共用的旅行事实源。
+9. `GET /api/planning-runs/ops` 输出不含旅行者或目的地明细的队列、租约、研究线与供应商用量聚合，供 Worker 上线检查和运维巡检使用。
 
 这些接口都使用服务端令牌保护。研究与候选编译不会读取高德 Key，阶段事件中的 POI/路线调用增量固定为 0。
 

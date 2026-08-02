@@ -115,6 +115,7 @@ flowchart LR
 | 逐用户任务数与高德月度调用配额 | 已完成 |
 | 可过期、可撤销的只读旅行分享 | 已完成 |
 | 任务停止、归档与恢复 | 已完成 |
+| 管理员级队列、租约、研究线与高德总量监控 | 已完成，受服务器令牌保护 |
 
 新建任务先进入 `brief` 队列；在线 Worker 领取后进入 `researching`，工作台会显示每条研究线的等待、检索、完成或待重试状态。公共环境尚未启动 Worker 时会继续显示等待，这是可恢复的真实状态。
 
@@ -265,6 +266,7 @@ Research Worker 与受信执行器接口使用服务器令牌：
 - `/api/planning-runs/schedule`：只从已核验地点生成每天 4–6 个安排。
 - `/api/planning-runs/routes`：只创建和计算相邻 RouteSegment。
 - `/api/planning-runs/trip`：组装卡片和地图共用的 Trip 数据。
+- `GET /api/planning-runs/ops`：读取不含目的地、Brief 或用户标识的聚合运维快照，包括可领取任务、活动/过期租约、阶段和状态分布、研究线状态与当月高德总调用量。
 
 字段契约、离线命令与阶段限制见 [platform/README.md](platform/README.md)。
 
@@ -301,6 +303,12 @@ $env:PLANNER_BASE_URL = "https://your-site.example"
 $env:PLANNING_RUN_WRITE_TOKEN = "<server-token>"
 $env:CODEX_EXECUTABLE = "C:\path\to\codex.exe"
 npm.cmd run worker:research -- --watch
+```
+
+只读取平台运维状态、不检查 Codex 也不领取任务：
+
+```powershell
+npm.cmd run worker:research -- --status
 ```
 
 Worker 使用 `codex exec --output-schema` 约束每条研究线的结果。Codex 子进程只做只读研究，且不会继承平台写入令牌或高德密钥。
@@ -350,7 +358,7 @@ tests/                  产品边界与运行时测试
 ## 下一步
 
 1. 在独立常驻环境部署 Research Worker，并用真实非青田目的地完成端到端运行。
-2. 增加管理员级总量监控，再根据真实用量调整默认配额。
+2. 根据运维快照和首批真实用量调整默认配额，并接入告警或定时健康检查。
 3. 根据首批真实任务补充交通偏好、跨日调整和失败路段的人工重试入口。
 
 阶段记录见 [CHANGELOG.md](CHANGELOG.md)，研发与发布规则见 [AGENTS.md](AGENTS.md)。

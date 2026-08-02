@@ -1,6 +1,6 @@
 {
   "name": "ai-travel-planner-platform",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
@@ -9,7 +9,7 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "vinext start",
-    "test": "npm run build && node --test tests/rendered-html.test.mjs tests/research-runtime.test.mjs tests/provider-runtime.test.mjs tests/brief-runtime.test.mjs tests/research-worker.test.mjs tests/route-diff.test.mjs tests/run-lifecycle.test.mjs tests/trip-runtime.test.mjs && npm run test:pipeline",
+    "test": "npm run build && node --test tests/rendered-html.test.mjs tests/research-runtime.test.mjs tests/provider-runtime.test.mjs tests/brief-runtime.test.mjs tests/research-worker.test.mjs tests/route-diff.test.mjs tests/run-lifecycle.test.mjs tests/operations-runtime.test.mjs tests/trip-runtime.test.mjs && npm run test:pipeline",
     "worker:research": "node research-worker/index.mjs",
     "test:pipeline": "python -m unittest discover -s platform/tests -p \"test_*.py\"",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
