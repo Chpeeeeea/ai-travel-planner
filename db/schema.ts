@@ -23,11 +23,13 @@ export const planningRuns = sqliteTable("planning_runs", {
   leaseOwner: text("lease_owner"),
   leaseTokenHash: text("lease_token_hash"),
   leaseExpiresAt: text("lease_expires_at"),
+  archivedAt: text("archived_at"),
   lastError: text("last_error"),
   createdAt: createdAt(),
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [
   index("idx_planning_runs_owner_updated").on(table.ownerUserId, table.updatedAt),
+  index("idx_planning_runs_owner_archived_updated").on(table.ownerUserId, table.archivedAt, table.updatedAt),
   index("idx_planning_runs_status_updated").on(table.status, table.updatedAt),
   index("idx_planning_runs_lease_stage").on(table.leaseExpiresAt, table.currentStage, table.updatedAt),
   index("idx_planning_runs_destination_created").on(table.destination, table.createdAt),

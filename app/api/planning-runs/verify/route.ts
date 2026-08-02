@@ -1,7 +1,7 @@
 import { and, asc, eq } from "drizzle-orm";
 import { chooseAmapMatch } from "../../../../platform/runtime/provider.mjs";
 import { AmapProviderError, amapWebServiceKey, searchAmapPlaces } from "../../../../platform/server/amap-provider";
-import { dataLayer, deny, digest, parseJsonList, routeError } from "../../../../platform/server/planning-runtime";
+import { canceledRunResponse, dataLayer, deny, digest, parseJsonList, routeError } from "../../../../platform/server/planning-runtime";
 import { providerAllowance, recordProviderUsage } from "../../../../platform/server/traveler-quota";
 
 function clean(value: unknown, maximum = 120) {
@@ -70,6 +70,8 @@ export async function POST(request: Request) {
     const db = getDb();
     const [run] = await db.select().from(planningRuns).where(eq(planningRuns.id, runId)).limit(1);
     if (!run) return Response.json({ error: "PlanningRun not found" }, { status: 404 });
+    const canceled = canceledRunResponse(run);
+    if (canceled) return canceled;
     if (!["shortlisted", "verifying"].includes(run.currentStage)) {
       return Response.json({ error: `POI verification requires shortlisted or verifying stage (current stage: ${run.currentStage})` }, { status: 409 });
     }
@@ -178,6 +180,18 @@ export async function POST(request: Request) {
     const remaining = refreshed.filter((item) => ["candidate", "verification_failed"].includes(item.verificationStatus)).length;
     const now = new Date().toISOString();
     await recordProviderUsage(run.ownerUserId, runId, "poi", calls, now);
+    const [latestRun] = await db.select().from(planningRuns).where(eq(planningRuns.id, runId)).limit(1);
+    if (latestRun?.status === "canceled") {
+      await db.batch([
+        db.update(planningRuns).set({ providerPoiCalls: latestRun.providerPoiCalls + calls, updatedAt: now }).where(eq(planningRuns.id, runId)),
+        db.insert(planningRunEvents).values({
+          id: crypto.randomUUID(), runId, fromStage: latestRun.currentStage, toStage: latestRun.currentStage,
+          status: "canceled_after_provider_batch", poiCalls: calls, routeCalls: 0,
+          message: `Cancellation arrived during a POI batch; recorded ${calls} completed provider calls and stopped further work`, createdAt: now,
+        }),
+      ]);
+      return Response.json({ error: "PlanningRun was canceled by the traveler", code: "RUN_CANCELED", attempted_provider_calls: calls }, { status: 409 });
+    }
     await db.update(planningRuns).set({
       currentStage: "verifying",
       status: lastError ? "running_with_warnings" : "running",
@@ -221,6 +235,8 @@ export async function PATCH(request: Request) {
     const [run] = await db.select().from(planningRuns).where(eq(planningRuns.id, runId)).limit(1);
     const [candidate] = await db.select().from(candidates).where(and(eq(candidates.id, candidateId), eq(candidates.runId, runId))).limit(1);
     if (!run || !candidate) return Response.json({ error: "PlanningRun or candidate not found" }, { status: 404 });
+    const canceled = canceledRunResponse(run);
+    if (canceled) return canceled;
     if (run.currentStage !== "verifying") return Response.json({ error: "POI decisions require verifying stage" }, { status: 409 });
     if (action === "reject") {
       await db.update(candidates).set({ verificationStatus: "rejected", updatedAt: new Date().toISOString() }).where(eq(candidates.id, candidateId));
