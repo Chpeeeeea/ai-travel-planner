@@ -158,6 +158,8 @@ python scripts/planning_pipeline.py audit --input itinerary.json
 
 每个 `route_segment` 保存 provider、mode、distance、duration、原始摘要、核验时间和状态。若当前 MCP 返回 geometry，则保存；若只返回文字步骤，不可伪造 geometry，地图可调用 JSAPI 再绘制路线。
 
+旅行者编辑日程时保留未变化地点的 Assignment ID，按有向相邻点对比较前后顺序；只删除断开的 RouteSegment，只计算新增点对，禁止为了单点插入或重排删除当天全部真实道路。
+
 路线失败时使用端点直线作视觉占位，必须标 `fallback_straight_line` 且不写估算耗时。
 
 ### 6. 质量复核

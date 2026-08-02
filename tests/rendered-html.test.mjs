@@ -221,8 +221,12 @@ test("exposes an identity-scoped traveler API without browser secrets", async ()
   assert.match(itineraryApi, /eq\(planningRuns\.ownerUserId, user\.userId\)/);
   assert.match(itineraryApi, /Cross-origin writes are not allowed/);
   assert.match(itineraryApi, /Every itinerary place must be a verified POI with GCJ-02 coordinates/);
+  assert.match(itineraryApi, /diffAdjacentRouteSegments/);
   assert.match(itineraryApi, /db\.delete\(routeSegments\)/);
-  assert.match(itineraryApi, /currentStage: "scheduled", status: "queued"/);
+  assert.doesNotMatch(itineraryApi, /db\.delete\(routeSegments\)\.where\(eq\(routeSegments\.dayId, dayId\)\)/);
+  assert.match(itineraryApi, /currentStage: "scheduled"/);
+  assert.match(itineraryApi, /status: "queued"/);
+  assert.match(itineraryApi, /preserved_route_segments/);
   assert.match(itineraryApi, /db\.batch/);
   assert.match(exportApi, /eq\(planningRuns\.ownerUserId, user\.userId\)/);
   assert.match(exportApi, /tripToMarkdown/);
