@@ -7,6 +7,10 @@ export async function runtimeSecrets() {
     PLANNING_RUN_WRITE_TOKEN?: string;
     AMAP_WEBSERVICE_KEY?: string;
     AMAP_MAPS_API_KEY?: string;
+    TRAVELER_ACTIVE_RUN_LIMIT?: string;
+    TRAVELER_MONTHLY_RUN_LIMIT?: string;
+    TRAVELER_MONTHLY_POI_LIMIT?: string;
+    TRAVELER_MONTHLY_ROUTE_LIMIT?: string;
   };
 }
 

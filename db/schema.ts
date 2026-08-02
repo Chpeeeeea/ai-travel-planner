@@ -183,3 +183,30 @@ export const planningRunEvents = sqliteTable("planning_run_events", {
 }, (table) => [
   index("idx_planning_run_events_run_created").on(table.runId, table.createdAt),
 ]);
+
+export const providerUsageEvents = sqliteTable("provider_usage_events", {
+  id: text("id").primaryKey(),
+  ownerUserId: text("owner_user_id").notNull(),
+  runId: text("run_id").notNull().references(() => planningRuns.id, { onDelete: "cascade" }),
+  kind: text("kind").notNull(),
+  calls: integer("calls").notNull(),
+  createdAt: createdAt(),
+}, (table) => [
+  index("idx_provider_usage_owner_created").on(table.ownerUserId, table.createdAt),
+  index("idx_provider_usage_run_created").on(table.runId, table.createdAt),
+]);
+
+export const tripShareLinks = sqliteTable("trip_share_links", {
+  id: text("id").primaryKey(),
+  runId: text("run_id").notNull().references(() => planningRuns.id, { onDelete: "cascade" }),
+  ownerUserId: text("owner_user_id").notNull(),
+  tokenHash: text("token_hash").notNull(),
+  status: text("status").notNull().default("active"),
+  expiresAt: text("expires_at"),
+  revokedAt: text("revoked_at"),
+  createdAt: createdAt(),
+}, (table) => [
+  uniqueIndex("idx_trip_share_links_token_unique").on(table.tokenHash),
+  index("idx_trip_share_links_run_status").on(table.runId, table.status),
+  index("idx_trip_share_links_owner_created").on(table.ownerUserId, table.createdAt),
+]);

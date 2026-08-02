@@ -153,3 +153,42 @@ test("runs user-selected research lanes with bounded concurrency before provider
   assert.ok(compile > lastResearch);
   assert.equal(calls.at(-1).body.release_status, "complete");
 });
+
+test("parks a run when the traveler provider quota is exhausted", async () => {
+  const calls = [];
+  const server = createServer(async (request, response) => {
+    const body = await new Promise((resolve) => {
+      let raw = "";
+      request.setEncoding("utf8");
+      request.on("data", (chunk) => { raw += chunk; });
+      request.on("end", () => resolve(raw ? JSON.parse(raw) : null));
+    });
+    calls.push({ url: request.url, body });
+    response.setHeader("content-type", "application/json");
+    if (request.url === "/api/planning-runs/verify") {
+      response.end(JSON.stringify({ processed: 0, remaining: 12, quota_exceeded: true, stopped_early: true, quota: { reset_at: "2026-09-01T00:00:00.000Z" } }));
+    } else if (request.url === "/api/planning-runs/claim") {
+      response.end(JSON.stringify({ ok: true }));
+    } else {
+      response.statusCode = 404;
+      response.end(JSON.stringify({ error: "unexpected endpoint" }));
+    }
+  });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  try {
+    await advanceRun(
+      { baseUrl: `http://127.0.0.1:${address.port}`, token: "test-token", leaseSeconds: 600, maxLaneAttempts: 3, concurrency: 1 },
+      { lease: { token: "lease-token" }, run: { id: "run-quota", current_stage: "shortlisted" }, brief: {}, lanes: [] },
+    );
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+  assert.equal(calls.filter((call) => call.url === "/api/planning-runs/verify").length, 1);
+  const release = calls.find((call) => call.url === "/api/planning-runs/claim");
+  assert.equal(release.body.action, "release");
+  assert.equal(release.body.release_status, "awaiting_quota");
+  assert.match(release.body.error, /2026-09-01/);
+});

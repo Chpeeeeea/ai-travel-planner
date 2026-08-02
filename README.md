@@ -65,6 +65,8 @@ flowchart LR
 8. **发布结果**：`/trip?run_id=...` 在服务端校验任务归属，把 POI、Day、Assignment、RouteSegment、来源与质量警告组装为统一 Trip 数据。Planner 使用它渲染卡片、候选点、道路/遥感地图、导航入口与 Markdown/GeoJSON 导出。
 9. **持续编辑**：用户插入、移除或重排地点后，修改写回 D1，旧相邻道路立即失效；任务重新进入排程后的路线队列，由 Worker 只计算新顺序中的相邻路段。
 10. **持续反馈**：工作台轮询当前用户的任务状态和事件。刷新或重新登录后从 D1 恢复，不依赖浏览器内存保存业务结果。
+11. **控制用量**：网站按登录用户统计进行中任务、本月任务和真实高德 POI/路线调用；额度耗尽时任务进入 `awaiting_quota`，下月由 Worker 自动恢复，已完成结果不重复请求。
+12. **分享成品**：已发布行程可以生成只读链接。链接只包含卡片与地图，不带任务历史、编辑、导出或用户身份；所有者可设置 7/30/90 天或长期有效，并随时撤销。
 
 仓库已经包含可租约、可重试的 Research Worker。它根据用户选择动态创建最多 8 条主题研究线，并以最多 4 个 Codex Agent 有界并发执行；公共 Sites 仍需单独启动这个常驻进程。Worker 未在线时，任务会安全停在 `brief`，不会伪造真实证据。
 
@@ -75,6 +77,7 @@ flowchart LR
 - POI 与路线服务跳过已经完成的对象；密钥、配额、频率和网络错误会停止当前小批次。
 - 路线无法取得时只保留端点连线，并标记 `fallback_straight_line`；距离与耗时保持为空。
 - 每次转换都记录事件、错误和实际供应商调用数，工作台展示的是持久化事实而不是前端动画。
+- 用户配额由网站后端和 D1 强制，不依赖 Prompt 自觉；`awaiting_quota` 是可恢复暂停，不计入 Worker 失败重试。
 
 ## 七阶段状态机
 
@@ -107,6 +110,8 @@ flowchart LR
 | 动态任务的身份隔离卡片地图结果页 | 已完成 |
 | 动态行程插入、移除、重排与持久化路线重算 | 已完成，公共环境待 Worker 常驻 |
 | 用户专属 Markdown / GeoJSON 导出 | 已完成 |
+| 逐用户任务数与高德月度调用配额 | 已完成 |
+| 可过期、可撤销的只读旅行分享 | 已完成 |
 
 新建任务先进入 `brief` 队列；在线 Worker 领取后进入 `researching`，工作台会显示每条研究线的等待、检索、完成或待重试状态。公共环境尚未启动 Worker 时会继续显示等待，这是可恢复的真实状态。
 
@@ -145,7 +150,7 @@ flowchart LR
 
 ### Skill 在系统中的位置
 
-`ai-travel-planner` 是 Research Worker 的执行规范，不是浏览器里的 JavaScript 依赖。网站负责保存任务和展示状态；真正的 Worker 必须运行在能够调用 Codex Skill、浏览器检索工具和平台 API 的受信 Agent 环境中。
+`ai-travel-planner` 是 Research Worker 的执行规范，不是浏览器里的 JavaScript 依赖。网站负责保存任务、用户配额和分享权限；真正的 Worker 必须运行在能够调用 Codex Skill、浏览器检索工具和平台 API 的受信 Agent 环境中。配额不是一个新 Skill：它是网站后端的可信业务边界，Skill 只需要遵守平台返回的 `awaiting_quota` 状态。
 
 ```text
 网站 /studio
@@ -160,6 +165,8 @@ flowchart LR
 ```
 
 网站本身不会直接“调用本机 Skill”。Skill 需要部署到 Research Worker 所在的 Agent 运行环境，再由 Worker 使用服务器令牌把结构化结果写回平台。
+
+一个阿里云 Research Worker 可以服务所有用户：它从共享队列逐个领取 PlanningRun，并只在单个任务内部按主题并行派发研究 Agent。扩容时增加同一种 Worker 实例即可，租约保证同一任务不会被重复执行；不需要为每位用户复制 Worker 或 Skill。
 
 ### 分 Agent 派发逻辑
 
@@ -240,6 +247,8 @@ flowchart LR
 - `GET/PATCH /api/trips/disambiguation`：读取自己的同名/跨城候选并确认高德实体或排除错误地点；最后一项处理完后自动恢复任务队列。
 - `PATCH /api/trips/itinerary`：持久化当天的插入、移除和顺序修改，删除失效道路并重新排队。
 - `GET /api/trips/export?run_id=...&format=markdown|geojson`：导出当前用户自己的可读行程或真实地图数据。
+- `GET/POST/DELETE /api/trips/shares`：列出、创建和撤销自己已发布行程的只读分享链接；数据库只保存 Token 摘要。
+- `/share/:token`：匿名只读卡片地图；失效、过期或撤销后立即不可访问。
 
 Research Worker 与受信执行器接口使用服务器令牌：
 
@@ -272,6 +281,10 @@ npm run dev
 | `AMAP_SECURITY_JS_CODE` | JSAPI 安全代理 | 是 |
 | `AMAP_WEBSERVICE_KEY` | 服务器 POI 2.0 与路径规划 2.0 | 是 |
 | `PLANNING_RUN_WRITE_TOKEN` | Research Worker / 执行器接口 | 是 |
+| `TRAVELER_ACTIVE_RUN_LIMIT` | 每位用户同时进行中的任务上限，默认 3 | 否 |
+| `TRAVELER_MONTHLY_RUN_LIMIT` | 每位用户每月创建任务上限，默认 10 | 否 |
+| `TRAVELER_MONTHLY_POI_LIMIT` | 每位用户每月高德 POI 调用上限，默认 200 | 否 |
+| `TRAVELER_MONTHLY_ROUTE_LIMIT` | 每位用户每月高德路线调用上限，默认 200 | 否 |
 
 生产环境变量由 Sites 管理，不写入 Git。`AMAP_WEBSERVICE_KEY` 与浏览器 JSAPI Key 是两类不同的高德 Key。
 
@@ -333,8 +346,7 @@ tests/                  产品边界与运行时测试
 ## 下一步
 
 1. 在独立常驻环境部署 Research Worker，并用真实非青田目的地完成端到端运行。
-2. 增加按用户的任务数、POI 调用和路线调用配额。
-3. 增加可分享但可撤销的只读旅行链接，并与私人编辑链接分离。
-4. 为路线编辑增加按“仅受影响前后路段”重算的进一步调用优化。
+2. 为路线编辑增加按“仅受影响前后路段”重算的进一步调用优化。
+3. 增加任务取消/归档和管理员级总量监控，再根据真实用量调整默认配额。
 
 阶段记录见 [CHANGELOG.md](CHANGELOG.md)，研发与发布规则见 [AGENTS.md](AGENTS.md)。

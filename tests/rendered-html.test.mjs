@@ -69,6 +69,11 @@ test("sign-in gates traveler POI disambiguation", async () => {
   assert.match(response.headers.get("location") ?? "", /return_to=/);
 });
 
+test("rejects malformed public share links without exposing a traveler task", async () => {
+  const response = await render("/share/not-a-token");
+  assert.equal(response.status, 404);
+});
+
 test("server-renders the signed-in traveler research studio", async () => {
   const response = await render("/studio?destination=青田县&days=3&must_eat=田鱼", {
     "oai-authenticated-user-id": "test-user",
@@ -234,13 +239,38 @@ test("exposes an identity-scoped traveler API without browser secrets", async ()
   assert.match(disambiguationPanel, /选择此地点/);
   assert.match(disambiguationPanel, /排除此候选/);
   assert.match(studio, /\/disambiguation\?run_id=/);
-  assert.match(studio, /setTimeout\(poll, 5000\)/);
+  assert.match(studio, /awaiting_quota" \? 60_000 : 5000/);
   assert.match(studio, /Research Worker/);
   assert.match(studio, /任务已进入持久化队列/);
   assert.match(studio, /research_lanes/);
   assert.match(studio, /\/trip\?run_id=/);
   assert.match(studio, /打开卡片地图/);
   assert.doesNotMatch(studio, /AMAP_WEBSERVICE_KEY|PLANNING_RUN_WRITE_TOKEN|authorization:/i);
+});
+
+test("enforces traveler quotas and revocable read-only shares in durable storage", async () => {
+  const schema = await readFile(new URL("../db/schema.ts", import.meta.url), "utf8");
+  const migration = await readFile(new URL("../drizzle/0004_magical_the_executioner.sql", import.meta.url), "utf8");
+  const quota = await readFile(new URL("../platform/server/traveler-quota.ts", import.meta.url), "utf8");
+  const tripsApi = await readFile(new URL("../app/api/trips/route.ts", import.meta.url), "utf8");
+  const sharesApi = await readFile(new URL("../app/api/trips/shares/route.ts", import.meta.url), "utf8");
+  const sharePage = await readFile(new URL("../app/share/[token]/page.tsx", import.meta.url), "utf8");
+  const claimApi = await readFile(new URL("../app/api/planning-runs/claim/route.ts", import.meta.url), "utf8");
+  for (const table of ["provider_usage_events", "trip_share_links"]) {
+    assert.match(schema, new RegExp(`"${table}"`));
+    assert.match(migration, new RegExp("CREATE TABLE `" + table + "`"));
+  }
+  assert.match(quota, /TRAVELER_MONTHLY_POI_LIMIT/);
+  assert.match(quota, /ownerUserId/);
+  assert.match(quota, /utcMonthWindow/);
+  assert.match(tripsApi, /TRAVELER_QUOTA_EXCEEDED/);
+  assert.match(claimApi, /awaiting_quota/);
+  assert.match(sharesApi, /tokenHash: await digest\(token\)/);
+  assert.match(sharesApi, /Cross-origin writes are not allowed/);
+  assert.match(sharesApi, /status: "revoked"/);
+  assert.match(sharePage, /status, "active"/);
+  assert.match(sharePage, /currentStage !== "published"/);
+  assert.doesNotMatch(sharePage, /requireChatGPTUser/);
 });
 
 test("keeps research ingestion and candidate compilation provider-free", async () => {

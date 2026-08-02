@@ -1,6 +1,7 @@
 import { and, asc, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import { topicsForInterests } from "../../../../platform/runtime/travel-topics.mjs";
 import { dataLayer, deny, digest, routeError, stageOrder, type RunStage } from "../../../../platform/server/planning-runtime";
+import { utcMonthWindow } from "../../../../platform/server/traveler-quota";
 
 const claimableStatuses = ["draft", "queued", "running", "running_with_warnings", "worker_retry"];
 const claimableStages = stageOrder.filter((stage) => stage !== "published");
@@ -85,11 +86,15 @@ export async function POST(request: Request) {
     }
     const seconds = leaseSeconds(payload.lease_seconds);
     const now = new Date().toISOString();
+    const monthStart = utcMonthWindow().start;
     const { getDb, planningBriefs, planningRunEvents, planningRuns, researchLaneJobs } = await dataLayer();
     const db = getDb();
     const available = await db.select().from(planningRuns).where(and(
       inArray(planningRuns.currentStage, claimableStages),
-      inArray(planningRuns.status, claimableStatuses),
+      or(
+        inArray(planningRuns.status, claimableStatuses),
+        and(eq(planningRuns.status, "awaiting_quota"), lt(planningRuns.updatedAt, monthStart)),
+      ),
       lt(planningRuns.workerAttempt, 5),
       or(isNull(planningRuns.leaseExpiresAt), lt(planningRuns.leaseExpiresAt, now)),
     )).orderBy(asc(planningRuns.updatedAt)).limit(10);
@@ -99,10 +104,11 @@ export async function POST(request: Request) {
       const tokenHash = await digest(rawToken);
       const nextStage = candidate.currentStage === "brief" ? "researching" : candidate.currentStage as RunStage;
       const expiresAt = leaseExpiry(seconds);
+      const nextAttempt = candidate.status === "awaiting_quota" ? candidate.workerAttempt : candidate.workerAttempt + 1;
       const [claimed] = await db.update(planningRuns).set({
         currentStage: nextStage,
         status: "running",
-        workerAttempt: sql`${planningRuns.workerAttempt} + 1`,
+        workerAttempt: nextAttempt,
         workerVersion: workerVersion || null,
         leaseOwner: workerId,
         leaseTokenHash: tokenHash,
@@ -235,7 +241,7 @@ export async function PATCH(request: Request) {
     }
 
     const errorMessage = clean(payload.error, 1000);
-    const releaseStatuses = new Set(["running", "worker_retry", "awaiting_confirmation", "complete", "complete_with_warnings", "failed"]);
+    const releaseStatuses = new Set(["running", "worker_retry", "awaiting_confirmation", "awaiting_quota", "complete", "complete_with_warnings", "failed"]);
     let status = action === "run_failed" ? (payload.retryable === false || run.workerAttempt >= 5 ? "failed" : "worker_retry") : clean(payload.release_status, 40);
     if (!releaseStatuses.has(status)) status = run.currentStage === "published" ? "complete" : "running";
     await db.update(planningRuns).set({
